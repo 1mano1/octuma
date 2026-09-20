@@ -240,10 +240,12 @@ Los binarios de llama.cpp para Windows se bajan ya compilados de
 
 ### Lo que falta medir
 
-1. **El GGUF del 3B arreglado, con 20 ventanas**, para ponerlo en la misma
-   tabla que Q4_K_M (7.824) y Q4_0 (8.163). Con 8 ventanas dio **6.73**, pero
-   no es comparable: distinto tramo del texto.
-2. **Re-exportar los `.gguf` del 1.5B y el 3B** y resubir los tres a Hugging
+1. ~~Medir el GGUF del 3B arreglado~~ **HECHO**: da **7.492** con 20 ventanas,
+   contra 7.824 de Q4_K_M y 8.163 de Q4_0 (su F16 es 7.330). **TinyQ tambien
+   le gana a llama.cpp**: +2.2% de dano contra +6.7% del formato mas usado
+   para correr modelos en local. Es el argumento de por que la app Android usa
+   estos modelos y no unos cualquiera.
+2. **Re-exportar el `.gguf` del 1.5B** y resubir los tres a Hugging
    Face. El del 0.5B ya esta re-exportado en `out/qwen05b-int4-fix.gguf` y el
    del 3B en `out/qwen3b-int4-fix.gguf`, **ninguno subido todavia**.
 3. **Tokens por segundo en un telefono real**, cuando Lumen corra. El

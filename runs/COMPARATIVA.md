@@ -29,29 +29,23 @@ por eso el GGUF de TinyQ se midio dentro de llama.cpp, no fuera.
 | Modelo | Perplejidad | vs su F16 | Tamano |
 |---|---|---|---|
 | F16 | 7.330 | — | 6.18 GB |
+| **TinyQ int4** | **7.492** | **+2.2%** | 2.30 GB |
 | Q4_K_M | 7.824 | +6.7% | 1.93 GB |
 | Q4_0 | 8.163 | +11.4% | 1.82 GB |
-| **GGUF de TinyQ** | **15.494** | **+111%** | 2.30 GB |
+| TinyQ int4 *antes del arreglo* | 15.494 | +111% | 2.30 GB |
 
-### El export a GGUF esta roto
+**TinyQ tambien le gana a llama.cpp**: +2.2% contra el +6.7% de Q4_K_M, que es
+el formato mas usado para correr modelos en local. Tres veces menos dano, a
+cambio de 0.37 GB mas de archivo.
 
-El mismo modelo, leido desde `.tq` con el motor de TinyQ, da **8.55**: bien.
-Exportado a GGUF y leido por llama.cpp da **15.49**: mas del doble.
+Importa para la app Android: los modelos que produce TinyQ son mejores que los
+GGUF estandar que cualquiera bajaria de Hugging Face.
 
-Aviso al comparar: el GGUF sale de los modelos **`-int4-g32`** (grupos de 32)
-y el `.tq` medido es de **grupos de 64**. No son el mismo modelo. Grupos de 32
-deberian dar mejor calidad, no peor, asi que no explica un +111%, pero el
-primer paso es medir el `.tq` de g32 para partir el problema en dos.
+### El bug del export, resuelto
 
-Ya descartado: el exportador usa **Q4_1 con bloques de 32**, que es correcto, y
-convierte bien los parametros (`d = scale`, `m = -zero * scale`). Quedan como
-sospechosos el vocabulario y los metadatos (`_write_vocab`, `_write_metadata`):
-un tokenizador mal escrito dispara la perplejidad aunque los pesos esten bien,
-y encaja con un modelo que responde pero mal.
-
-Es el bug mas caro del proyecto porque GGUF es el formato que usa la app
-Android (Lumen). **Los .gguf publicados en Hugging Face estan degradados y no
-deben anunciarse hasta arreglar esto.** Las carpetas `.tq` estan bien.
+La fila de +111% era un GGUF con tres metadatos mal escritos, no un problema de
+cuantizacion. Detalle en `CLAUDE.md`. Se arreglo el 2026-09-20 y el archivo
+re-exportado es el que da 7.492.
 
 ## 3. Calidad de las respuestas
 

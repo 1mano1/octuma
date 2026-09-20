@@ -41,6 +41,18 @@ Y el dano baja conforme el modelo crece, que es justo lo que interesa:
 ![Degradacion segun el tamano del modelo](docs/img/degradacion-por-tamano.png#gh-light-mode-only)
 ![Degradacion segun el tamano del modelo](docs/img/degradacion-por-tamano-dark.png#gh-dark-mode-only)
 
+Y dentro de llama.cpp, comparado contra sus propios formatos sobre el mismo
+Qwen 3B (20 ventanas de 2048, F16 de referencia 7.330):
+
+| Formato | Perplejidad | Perdida |
+|---|---|---|
+| **TinyQ int4** | **7.492** | **+2.2%** |
+| Q4_K_M | 7.824 | +6.7% |
+| Q4_0 | 8.163 | +11.4% |
+
+Q4_K_M es el formato mas usado para correr modelos en local, y TinyQ le hace
+**tres veces menos dano** al modelo.
+
 Los numeros salen de `runs/*.json` y las graficas se regeneran con
 `python scripts/grafica_comparativa.py`. El detalle completo esta en
 [`runs/COMPARATIVA.md`](runs/COMPARATIVA.md).
