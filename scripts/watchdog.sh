@@ -41,12 +41,13 @@ while true; do
     terminate "se alcanzo el tope de ${MAX_HOURS} horas"
   fi
 
-  if ! pgrep -f "run_sweep.py" > /dev/null; then
+  # se vigilan las dos fases: el barrido y la generacion de artefactos
+  if ! pgrep -f "run_sweep.py|export_artifacts.py" > /dev/null; then
     echo "$(date -Is) el barrido termino; esperando ${GRACE_MIN} min de gracia" >> "$LOG"
     for _ in $(seq 1 "$GRACE_MIN"); do
       sleep 60
       # si alguien relanza el barrido durante la gracia, se cancela el apagado
-      if pgrep -f "run_sweep.py" > /dev/null; then
+      if pgrep -f "run_sweep.py|export_artifacts.py" > /dev/null; then
         echo "$(date -Is) el barrido volvio a correr; se cancela el apagado" >> "$LOG"
         continue 2
       fi
