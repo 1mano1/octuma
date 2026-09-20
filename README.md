@@ -59,6 +59,20 @@ tinyq export out/m --out modelo-int4.gguf
 
 El `.gguf` resultante lo lee llama.cpp, y de ahi corre en Android.
 
+**Verificado de verdad**: Qwen2.5-0.5B cuantizado con TinyQ, exportado a GGUF y
+ejecutado en llama.cpp (build b11057):
+
+```
+$ llama-completion -m qwen05b-int4.gguf -p "La capital de Francia es" --temp 0
+La capital de Francia es la ciudad de Paris.
+
+prompt eval: 121 tokens/s · eval: 77 tokens/s   (CPU de laptop, 6 hilos)
+```
+
+El archivo pesa 0.52 GB. `scripts/verify_gguf.py` compara tensor por tensor el
+GGUF contra el modelo original: 291 de 291 presentes, peor error relativo
+0.0056 (los embeddings en Q8_0; las capas cuantizadas quedan en 0.0006).
+
 ### Por que por grupos y asimetrico
 
 Una sola escala por tensor se arruina con un solo peso atipico. Con grupos de 64
@@ -129,7 +143,7 @@ al menos 10 veces la dimension de la capa mas ancha.
 - [x] Perplejidad, memoria y velocidad
 - [x] Exportar a GGUF Q4_1 / Q8_0 (llama.cpp / Android)
 - [x] Analisis de sensibilidad por capa y plan de precision mixta
-- [ ] Validar el GGUF corriendo en llama.cpp
+- [x] GGUF validado corriendo en llama.cpp (genera texto correcto)
 - [ ] Cuantizacion del cache KV
 - [ ] Kernel rapido para INT4 (hoy se dequantiza al vuelo)
 - [ ] App Android de demostracion
