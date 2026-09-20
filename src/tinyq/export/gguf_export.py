@@ -85,9 +85,10 @@ def _write_metadata(writer, cfg: Any, arch: str, name: str) -> None:
     writer.add_rope_dimension_count(head_dim)
     writer.add_rope_freq_base(getattr(cfg, "rope_theta", 10000.0))
     writer.add_file_type(1)  # MOSTLY_F16 como base; los tensores llevan su tipo
+    writer.add_quantization_version(2)  # GGML_QNT_VERSION: llama.cpp lo exige
 
 
-def _write_vocab(writer, model_dir: Path) -> None:
+def _write_vocab(writer, model_dir: Path, n_vocab: int = 0) -> None:
     """Escribe el vocabulario BPE leyendo tokenizer.json de Hugging Face."""
     tok_path = model_dir / "tokenizer.json"
     if not tok_path.exists():
@@ -98,16 +99,20 @@ def _write_vocab(writer, model_dir: Path) -> None:
     vocab: dict[str, int] = data["model"]["vocab"]
     merges = data["model"].get("merges", [])
 
-    tokens = [""] * len(vocab)
+    added = {t["id"]: t for t in data.get("added_tokens", [])}
+    # el modelo puede declarar mas tokens de los que trae el tokenizer: los
+    # huecos se rellenan como UNUSED o llama.cpp rechaza el archivo
+    size = max([len(vocab), n_vocab] + [i + 1 for i in added])
+    tokens = [f"[UNUSED_{i}]" for i in range(size)]
+    types = [5] * size  # UNUSED
+
     for tok, idx in vocab.items():
         tokens[idx] = tok
-    types = [1] * len(tokens)  # NORMAL
+        types[idx] = 1  # NORMAL
 
-    added = {t["id"]: t for t in data.get("added_tokens", [])}
     for idx, spec in added.items():
-        if idx < len(tokens):
-            tokens[idx] = spec["content"]
-            types[idx] = 3 if spec.get("special") else 1  # CONTROL / NORMAL
+        tokens[idx] = spec["content"]
+        types[idx] = 3 if spec.get("special") else 4  # CONTROL / USER_DEFINED
 
     writer.add_tokenizer_model("gpt2")
     writer.add_tokenizer_pre("default")
@@ -117,6 +122,42 @@ def _write_vocab(writer, model_dir: Path) -> None:
         writer.add_token_merges(
             [" ".join(m) if isinstance(m, list) else m for m in merges]
         )
+
+    # tokens especiales: sin ellos llama.cpp no sabe cuando parar de generar
+    ids = _special_token_ids(model_dir, vocab)
+    if ids.get("bos") is not None:
+        writer.add_bos_token_id(ids["bos"])
+    if ids.get("eos") is not None:
+        writer.add_eos_token_id(ids["eos"])
+    if ids.get("pad") is not None:
+        writer.add_pad_token_id(ids["pad"])
+    writer.add_add_bos_token(ids.get("add_bos", False))
+
+
+def _special_token_ids(model_dir: Path, vocab: dict[str, int]) -> dict:
+    """Lee bos/eos/pad de la configuracion del tokenizer de Hugging Face."""
+    out: dict = {}
+    cfg_path = model_dir / "tokenizer_config.json"
+    if cfg_path.exists():
+        cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
+        out["add_bos"] = bool(cfg.get("add_bos_token", False))
+        for key, name in (("bos", "bos_token"), ("eos", "eos_token"), ("pad", "pad_token")):
+            tok = cfg.get(name)
+            if isinstance(tok, dict):
+                tok = tok.get("content")
+            if isinstance(tok, str) and tok in vocab:
+                out[key] = vocab[tok]
+
+    gen_path = model_dir / "generation_config.json"
+    if gen_path.exists():
+        gen = json.loads(gen_path.read_text(encoding="utf-8"))
+        for key, name in (("bos", "bos_token_id"), ("eos", "eos_token_id")):
+            val = gen.get(name)
+            if isinstance(val, list):
+                val = val[0]
+            if isinstance(val, int):
+                out[key] = val
+    return out
 
 
 def export_gguf(
@@ -146,7 +187,7 @@ def export_gguf(
 
     writer = gguf.GGUFWriter(str(out_file), arch)
     _write_metadata(writer, cfg, arch, name)
-    _write_vocab(writer, model_dir)
+    _write_vocab(writer, model_dir, n_vocab=getattr(cfg, "vocab_size", 0))
 
     arch_enum = {v: k for k, v in gguf.MODEL_ARCH_NAMES.items()}[arch]
     name_map = gguf.TensorNameMap(arch_enum, cfg.num_hidden_layers)
@@ -164,6 +205,13 @@ def export_gguf(
             gg + ".weight", data, raw_dtype=gguf.GGMLQuantizationType.Q4_1
         )
         written += 1
+        # el sesgo va aparte y sin cuantizar: Qwen2 lo usa en q, k y v, y sin
+        # el la salida del modelo es basura
+        if module.bias is not None:
+            writer.add_tensor(
+                f"{gg}.bias", module.bias.float().cpu().numpy().astype(np.float32)
+            )
+            written += 1
 
     for hf_name, tensor in state.items():
         base, _, kind = hf_name.rpartition(".")

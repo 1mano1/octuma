@@ -70,6 +70,27 @@ def test_export_gguf_writes_readable_file(tmp_path):
     assert q4.tensor_type == gguf.GGMLQuantizationType.Q4_1
 
 
+def test_export_includes_attention_biases(tmp_path):
+    """Qwen2 usa sesgo en q, k y v: si no se exportan, el modelo delira."""
+    from transformers import LlamaConfig, LlamaForCausalLM
+
+    cfg = LlamaConfig(
+        vocab_size=VOCAB, hidden_size=64, intermediate_size=128,
+        num_hidden_layers=1, num_attention_heads=4, num_key_value_heads=2,
+        max_position_embeddings=64, attention_bias=True,
+    )
+    torch.manual_seed(0)
+    model = LlamaForCausalLM(cfg).eval()
+    quantize_model(model, calib(), QuantConfig(bits=4, group_size=32))
+    _fake_tokenizer_json(tmp_path)
+
+    out = export_gguf(model, tmp_path / "bias.gguf", tmp_path)
+    names = {t.name for t in gguf.GGUFReader(str(out)).tensors}
+    for part in ("attn_q", "attn_k", "attn_v"):
+        assert f"blk.0.{part}.weight" in names
+        assert f"blk.0.{part}.bias" in names, f"falta el sesgo de {part}"
+
+
 def test_export_gguf_rejects_wrong_group_size(tmp_path):
     model = tiny_llama()
     quantize_model(model, calib(), QuantConfig(bits=4, group_size=64))
