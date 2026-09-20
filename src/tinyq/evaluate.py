@@ -72,7 +72,9 @@ def perplexity(
 def wikitext2_ids(tokenizer, split: str = "test") -> torch.Tensor:
     from datasets import load_dataset
 
-    ds = load_dataset("wikitext", "wikitext-2-raw-v1", split=split)
+    from .calibrate import WIKITEXT_REPO
+
+    ds = load_dataset(WIKITEXT_REPO, "wikitext-2-raw-v1", split=split)
     return tokenizer("\n\n".join(ds["text"]), return_tensors="pt").input_ids
 
 

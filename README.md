@@ -22,7 +22,42 @@ tinyq info out/qwen-int4
 | **Calibrar** | Toma ventanas aleatorias de un corpus real (wikitext-2, C4 o tus propios textos) y mide, capa por capa, que direcciones de la entrada importan. Se guarda como `H = 2·XXᵀ`. |
 | **Cuantizar** | Agrupa los pesos en bloques de 64 por fila, saca una escala y un punto cero por bloque, y los lleva a 4 bits. El redondeo no es ciego: con GPTQ, el error de cada columna se reparte entre las columnas que faltan usando la Hessiana. |
 | **Evaluar** | Perplejidad en wikitext-2 con ventanas sin solape, memoria por tipo de capa y tokens por segundo. |
-| **Exportar** | Formato propio `.tq` (safetensors empaquetado) para PyTorch. GGUF para llama.cpp y Android: en camino. |
+| **Exportar** | Formato propio `.tq` (safetensors empaquetado) para PyTorch, y **GGUF** para llama.cpp y Android. |
+
+### Precision mixta guiada por datos
+
+No todas las capas sufren igual. `tinyq analyze` mide, capa por capa, cuanto
+cambia su **salida** al cuantizar, no cuanto cambian sus pesos:
+
+```
+||ΔW·X||² = tr(ΔW · H · ΔWᵀ)
+```
+
+Con eso ordena las capas por dano real y arma un plan: las mas sensibles suben
+a 8 bits y el resto se queda en 4, sin pasarse del promedio de bits que pidas.
+
+```bash
+tinyq analyze Qwen/Qwen2.5-0.5B-Instruct --target-bits 4.5 -o plan.json
+tinyq quantize Qwen/Qwen2.5-0.5B-Instruct --out out/qwen-mix --plan plan.json
+```
+
+### Android
+
+El exportador escribe GGUF con los pesos en **Q4_1**, que es exactamente el
+mismo formato que un grupo asimetrico de 32 de TinyQ:
+
+```
+TinyQ:  w = (q - z)·s        Q4_1:  w = d·q + m        d = s,  m = -z·s
+```
+
+Por eso, para exportar a GGUF hay que cuantizar con `--group 32`:
+
+```bash
+tinyq quantize <modelo> --out out/m --bits 4 --group 32
+tinyq export out/m --out modelo-int4.gguf
+```
+
+El `.gguf` resultante lo lee llama.cpp, y de ahi corre en Android.
 
 ### Por que por grupos y asimetrico
 
@@ -44,9 +79,11 @@ cero de un byte, o sea ~4.4 bits por peso en vez de 4.
 - [x] Precision mixta por capa (`bits_overrides`)
 - [x] Guardar y cargar `.tq`
 - [x] Perplejidad, memoria y velocidad
-- [ ] Exportar a GGUF (llama.cpp / Android)
-- [ ] Analisis de sensibilidad automatico por capa
+- [x] Exportar a GGUF Q4_1 / Q8_0 (llama.cpp / Android)
+- [x] Analisis de sensibilidad por capa y plan de precision mixta
+- [ ] Validar el GGUF corriendo en llama.cpp
 - [ ] Cuantizacion del cache KV
+- [ ] Kernel rapido para INT4 (hoy se dequantiza al vuelo)
 - [ ] App Android de demostracion
 
 ## Uso desde Python
