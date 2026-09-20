@@ -264,7 +264,7 @@ def quantize_model(
             else:
                 qt = quantize_tensor(
                     lin.weight.data, bits=bits, group_size=cfg.group_size,
-                    symmetric=cfg.symmetric,
+                    symmetric=cfg.symmetric, search=cfg.search_scale,
                 )
                 w = lin.weight.data.float()
                 rel = ((w - qt.dequantize()).norm() / w.norm().clamp(min=1e-12)).item()

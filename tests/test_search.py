@@ -47,6 +47,34 @@ def test_searched_values_stay_in_range():
     assert s.dtype == torch.float16 and z.dtype == torch.uint8
 
 
+def test_quantize_tensor_honors_search_flag():
+    """La bandera debe cambiar el resultado: si no, la rama RTN la ignora."""
+    torch.manual_seed(0)
+    w = torch.randn(16, 128)
+    w[:, ::31] *= 20
+    plain = quantize_tensor(w, 4, 64, search=False)
+    searched = quantize_tensor(w, 4, 64, search=True)
+    assert not torch.equal(plain.scales, searched.scales)
+    e_plain = quantization_error(w, plain.dequantize())["rel_fro"]
+    e_search = quantization_error(w, searched.dequantize())["rel_fro"]
+    assert e_search < e_plain
+
+
+def test_rtn_pipeline_uses_search_when_enabled():
+    from tinyq.quantizer import QuantConfig, quantize_model
+    from tests.test_pipeline import calib, tiny_llama
+
+    out = {}
+    for flag in (False, True):
+        model = tiny_llama()
+        quantize_model(
+            model, calib(n=2),
+            QuantConfig(method="rtn", bits=4, group_size=32, search_scale=flag),
+        )
+        out[flag] = model.model.layers[0].mlp.down_proj.scales.clone()
+    assert not torch.equal(out[False], out[True])
+
+
 def test_symmetric_search_runs():
     torch.manual_seed(0)
     w = torch.randn(8, 64)

@@ -123,9 +123,19 @@ def quantize_tensor(
     bits: int = 4,
     group_size: int = 64,
     symmetric: bool = False,
+    search: bool = False,
 ) -> QuantizedTensor:
-    """Cuantiza y empaqueta una matriz de pesos [out_features, in_features]."""
-    q, scales, zeros = quantize_groupwise(w, bits, group_size, symmetric)
+    """Cuantiza y empaqueta una matriz de pesos [out_features, in_features].
+
+    Con `search=True` busca la escala que minimiza el error en vez de usar el
+    minimo y el maximo del grupo.
+    """
+    if search:
+        from .search import quantize_groupwise_searched
+
+        q, scales, zeros = quantize_groupwise_searched(w, bits, group_size, symmetric)
+    else:
+        q, scales, zeros = quantize_groupwise(w, bits, group_size, symmetric)
     return QuantizedTensor(
         qweight=pack_bits(q, bits),
         scales=scales,
