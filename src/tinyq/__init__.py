@@ -4,8 +4,8 @@ __version__ = "0.1.0"
 
 from .quant import (
     GPTQConfig,
-    QuantLinear,
     QuantizedTensor,
+    QuantLinear,
     gptq_quantize,
     quantize_tensor,
 )

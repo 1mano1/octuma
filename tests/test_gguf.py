@@ -97,3 +97,66 @@ def test_export_gguf_rejects_wrong_group_size(tmp_path):
     _fake_tokenizer_json(tmp_path)
     with pytest.raises(ValueError, match="group 32"):
         export_gguf(model, tmp_path / "bad.gguf", tmp_path)
+
+
+def test_rope_theta_anidado_en_rope_parameters():
+    """transformers 5 movio rope_theta dentro de rope_parameters.
+
+    El `getattr(cfg, "rope_theta", 10000.0)` de antes se tragaba el cambio y
+    escribia 10000 donde Qwen2.5 usa 1000000. El modelo seguia respondiendo
+    frases cortas y la perplejidad se duplicaba en ventanas largas.
+    """
+    from types import SimpleNamespace
+
+    from tinyq.export.gguf_export import _rope_theta
+
+    plano = SimpleNamespace(rope_theta=1000000.0)
+    assert _rope_theta(plano) == 1000000.0
+
+    anidado = SimpleNamespace(rope_parameters={"rope_theta": 1000000.0})
+    assert _rope_theta(anidado) == 1000000.0
+
+    # sin el valor NO se inventa un default: eso es lo que corrompia el modelo
+    with pytest.raises(ValueError, match="rope_theta"):
+        _rope_theta(SimpleNamespace())
+
+
+def test_tokens_especiales_desde_added_tokens(tmp_path):
+    """Los especiales de Qwen (<|im_end|>) viven en added_tokens, no en vocab.
+
+    Buscarlos solo en model.vocab los perdia en silencio y el GGUF salia sin
+    eos, asi que llama.cpp no sabia cuando parar de generar.
+    """
+    from tinyq.export.gguf_export import _special_token_ids
+
+    vocab = {"hola": 0, "mundo": 1}
+    added = {151645: "<|im_end|>"}
+    (tmp_path / "tokenizer_config.json").write_text(
+        json.dumps({"eos_token": "<|im_end|>", "pad_token": "hola"}), encoding="utf-8"
+    )
+
+    ids = _special_token_ids(tmp_path, vocab, {v: k for k, v in added.items()})
+    assert ids["eos"] == 151645
+    assert ids["pad"] == 0
+
+
+def test_pre_tokenizador_por_arquitectura(tmp_path):
+    """Con el pre-tokenizador equivocado el texto se parte distinto a como el
+    modelo aprendio, y la perplejidad sube aunque los pesos sean correctos."""
+    from transformers import LlamaConfig, LlamaForCausalLM
+
+    from tinyq.export.gguf_export import _PRE_POR_ARCH
+
+    assert _PRE_POR_ARCH["qwen2"] == "qwen2"
+
+    cfg = LlamaConfig(
+        vocab_size=VOCAB, hidden_size=32, intermediate_size=64,
+        num_hidden_layers=1, num_attention_heads=4, num_key_value_heads=4,
+    )
+    model = LlamaForCausalLM(cfg)
+    quantize_model(model, calib(), QuantConfig(bits=4, group_size=32))
+    _fake_tokenizer_json(tmp_path)
+    out = export_gguf(model, tmp_path / "pre.gguf", tmp_path)
+
+    reader = gguf.GGUFReader(str(out))
+    assert reader.fields["tokenizer.ggml.pre"].contents() == "llama-bpe"

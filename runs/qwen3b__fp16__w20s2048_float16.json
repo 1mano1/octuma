@@ -1,0 +1,19 @@
+{
+  "id": "qwen3b__fp16__w20s2048_float16",
+  "model": "Qwen/Qwen2.5-3B-Instruct",
+  "short": "qwen3b",
+  "method": "fp16",
+  "perplexity": 8.347172079511308,
+  "memory_bytes": {
+    "quantized": 0,
+    "dense": 6171578368,
+    "embeddings": 622329856,
+    "total": 6793908224
+  },
+  "eval_seconds": 3.544428596040234,
+  "eval": {
+    "windows": 20,
+    "seq_len": 2048,
+    "dtype": "float16"
+  }
+}

@@ -53,7 +53,7 @@ class QuantLinear(nn.Module):
         group_size: int = 64,
         symmetric: bool = False,
         weight: torch.Tensor | None = None,
-    ) -> "QuantLinear":
+    ) -> QuantLinear:
         w = linear.weight.data if weight is None else weight
         qt = quantize_tensor(w, bits=bits, group_size=group_size, symmetric=symmetric)
         mod = cls(

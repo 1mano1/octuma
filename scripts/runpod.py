@@ -72,7 +72,7 @@ def cmd_gpus(args) -> None:
         sp = p["minimumBidPrice"]
         print(
             f"{g['displayName'][:32]:32} {g['memoryInGb']:5}G "
-            f"{('$%.3f/h' % od) if od else '-':>11} {('$%.3f/h' % sp) if sp else '-':>8}"
+            f"{f'${od:.3f}/h' if od else '-':>11} {f'${sp:.3f}/h' if sp else '-':>8}"
         )
 
 
@@ -172,8 +172,8 @@ def main() -> None:
     g.add_argument("--limit", type=int, default=15)
     g.set_defaults(func=cmd_gpus)
 
-    l = sub.add_parser("list", help="pods activos")
-    l.set_defaults(func=cmd_list)
+    listar = sub.add_parser("list", help="pods activos")
+    listar.set_defaults(func=cmd_list)
 
     c = sub.add_parser("create", help="crea un pod")
     c.add_argument("--gpu", default="NVIDIA A40")

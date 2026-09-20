@@ -61,8 +61,8 @@ def test_quantize_tensor_honors_search_flag():
 
 
 def test_rtn_pipeline_uses_search_when_enabled():
-    from tinyq.quantizer import QuantConfig, quantize_model
     from tests.test_pipeline import calib, tiny_llama
+    from tinyq.quantizer import QuantConfig, quantize_model
 
     out = {}
     for flag in (False, True):

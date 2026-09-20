@@ -1,0 +1,19 @@
+{
+  "id": "baseline__bnb-fp4__qwen3b",
+  "tool": "bnb-fp4",
+  "short": "qwen3b",
+  "perplexity": 13.343381221155415,
+  "memory_bytes": {
+    "quantized": 0,
+    "dense": 2009780224,
+    "embeddings": 622329856,
+    "total": 2632110080
+  },
+  "eval": {
+    "windows": 20,
+    "seq_len": 2048,
+    "dataset": "wikitext2"
+  },
+  "eval_seconds": 4.366790308849886,
+  "total_seconds": 9.821876311907545
+}

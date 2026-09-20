@@ -2,8 +2,8 @@ import torch
 
 from tinyq.quant.core import quantize_tensor
 from tinyq.sensitivity import (
-    SensitivityReport,
     LayerSensitivity,
+    SensitivityReport,
     analyze_sensitivity,
     output_error,
 )
@@ -31,7 +31,7 @@ def test_analyze_sensitivity_covers_all_linears():
     model = tiny_llama()
     report = analyze_sensitivity(model, calib(), bits_options=(4, 8), group_size=32)
     assert len(report.layers) == 14
-    assert all(l.error_by_bits[4] >= l.error_by_bits[8] for l in report.layers)
+    assert all(capa.error_by_bits[4] >= capa.error_by_bits[8] for capa in report.layers)
 
 
 def test_plan_respects_budget():

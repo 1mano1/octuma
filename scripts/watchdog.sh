@@ -17,28 +17,83 @@ LOG=/workspace/watchdog.log
 started=$(date +%s)
 echo "$(date -Is) vigilante activo · pod=$POD_ID gracia=${GRACE_MIN}min tope=${MAX_HOURS}h" >> "$LOG"
 
+
+# Regla del autor: primero se comprueba que los modelos esten a salvo, y solo
+# despues se apaga. night_run.sh escribe este centinela unicamente cuando ya
+# verifico contra Hugging Face que cada repo existe y tiene archivos.
+SENTINELA=/workspace/.modelos_a_salvo
+
+modelos_a_salvo() {
+  [ -f "$SENTINELA" ]
+}
+
+# Si hay artefactos generados pero nunca se confirmo la subida, apagar
+# significa perderlos. En ese caso el vigilante prefiere seguir cobrando y
+# dejarlo dicho en el log antes que borrar trabajo de toda una noche.
+apagado_seguro() {
+  if modelos_a_salvo; then return 0; fi
+  if [ -n "$(ls -A /workspace/TinyQ/out 2>/dev/null)" ]; then
+    echo "$(date -Is) NO se apaga: hay modelos en out/ y no se confirmo la subida a Hugging Face" >> "$LOG"
+    return 1
+  fi
+  return 0
+}
+# Baja el pod y NO se da por satisfecho hasta confirmarlo. Un 403 pasajero de
+# la API dejo el pod encendido seis horas: por eso aqui se reintenta con
+# espera creciente y se verifica que el pod de verdad haya desaparecido.
+apagar_pod() {
+  local key; key=$(cat "$KEY_FILE")
+  local code
+  # API REST actual; si no responde, se intenta el GraphQL viejo
+  code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE \
+    -H "Authorization: Bearer $key" \
+    "https://rest.runpod.io/v1/pods/$POD_ID" || echo 000)
+  if [ "$code" != "200" ] && [ "$code" != "204" ]; then
+    code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+      -H 'Content-Type: application/json' -H "Authorization: Bearer $key" \
+      -d "{\"query\":\"mutation{ podTerminate(input:{podId:\\\"$POD_ID\\\"}) }\"}" \
+      https://api.runpod.io/graphql || echo 000)
+  fi
+  echo "$code"
+}
+
+pod_sigue_vivo() {
+  local key; key=$(cat "$KEY_FILE")
+  local http; http=$(curl -s -o /tmp/pod_estado -w '%{http_code}' \
+    -H "Authorization: Bearer $key" \
+    "https://rest.runpod.io/v1/pods/$POD_ID" || echo 000)
+  # 404 = ya no existe; 000/500 = no se sabe, se asume vivo por prudencia
+  [ "$http" = "404" ] && return 1
+  return 0
+}
+
 terminate() {
   local motivo="$1"
   echo "$(date -Is) apagando el pod: $motivo" >> "$LOG"
-  python - "$POD_ID" <<'PY' >> "$LOG" 2>&1
-import sys, json, urllib.request
-pod_id = sys.argv[1]
-key = open("/workspace/.runpod_key").read().strip()
-q = {"query": "mutation($id: String!){ podTerminate(input:{podId:$id}) }",
-     "variables": {"id": pod_id}}
-req = urllib.request.Request(
-    f"https://api.runpod.io/graphql?api_key={key}",
-    data=json.dumps(q).encode(), headers={"Content-Type": "application/json"})
-print(urllib.request.urlopen(req, timeout=60).read().decode())
-PY
-  exit 0
+  local espera=30
+  for intento in 1 2 3 4 5 6 7 8; do
+    local code; code=$(apagar_pod)
+    echo "$(date -Is) intento $intento de apagado -> HTTP $code" >> "$LOG"
+    sleep 20
+    if ! pod_sigue_vivo; then
+      echo "$(date -Is) confirmado: el pod ya no existe" >> "$LOG"
+      exit 0
+    fi
+    echo "$(date -Is) el pod sigue vivo; reintento en ${espera}s" >> "$LOG"
+    sleep "$espera"
+    espera=$(( espera * 2 ))
+  done
+  # Ocho intentos fallidos: el vigilante NO se muere en silencio como la vez
+  # pasada. Sigue vivo y vuelve a intentarlo en el siguiente ciclo.
+  echo "$(date -Is) ALERTA: no se pudo apagar el pod tras 8 intentos; sigue cobrando" >> "$LOG"
+  return 1
 }
 
 while true; do
   ahora=$(date +%s)
   horas=$(( (ahora - started) / 3600 ))
   if [ "$horas" -ge "$MAX_HOURS" ]; then
-    terminate "se alcanzo el tope de ${MAX_HOURS} horas"
+    if apagado_seguro; then terminate "se alcanzo el tope de ${MAX_HOURS} horas"; fi
   fi
 
   # se vigilan las dos fases: el barrido y la generacion de artefactos
@@ -52,7 +107,7 @@ while true; do
         continue 2
       fi
     done
-    terminate "el barrido termino y paso la gracia"
+    if apagado_seguro; then terminate "el barrido termino y paso la gracia"; fi
   fi
   sleep 60
 done

@@ -8,12 +8,50 @@ normal. TinyQ lo baja a ~4.3 GB conservando la mayor parte de la calidad, con
 cuatro pasos: **calibrar, cuantizar, evaluar y exportar**.
 
 ```bash
-pip install -e ".[hf]"
+pip install -e ".[hf,gguf]"
 
-tinyq quantize Qwen/Qwen2.5-0.5B-Instruct --out out/qwen-int4 --bits 4 --group 64
-tinyq evaluate out/qwen-int4 --windows 20
-tinyq info out/qwen-int4
+tinyq quantize Qwen/Qwen2.5-3B-Instruct    # cuantiza, sin elegir nada
+tinyq compare qwen2.5-3b-instruct-int4     # ¿quedo bien?
+tinyq try qwen2.5-3b-instruct-int4         # ¿sigue hablando bien?
 ```
+
+No hay que decidir metodo, bits ni carpeta: los valores por defecto son la
+configuracion que gana en nuestras propias mediciones, la GPU se detecta sola y
+te avisa **antes de descargar nada** si el modelo no va a caber en tu memoria.
+
+## Que tan bien queda
+
+![Comparativa contra otros cuantizadores](docs/img/comparativa-herramientas.png#gh-light-mode-only)
+![Comparativa contra otros cuantizadores](docs/img/comparativa-herramientas-dark.png#gh-dark-mode-only)
+
+Sobre el mismo Qwen2.5-3B, con el mismo evaluador y las mismas ventanas, TinyQ
+hace **menos de la mitad de dano** que bitsandbytes NF4, el cuantizador por
+defecto de Hugging Face y el que usa QLoRA:
+
+| Herramienta | Perplejidad | Memoria | Perdida |
+|---|---|---|---|
+| FP16 (sin cuantizar) | 8.347 | 6.79 GB | — |
+| **TinyQ GPTQ+AWQ** | **8.549** | 2.76 GB | **+2.4%** |
+| TinyQ GPTQ | 8.578 | 2.76 GB | +2.8% |
+| bitsandbytes NF4 | 8.906 | 2.63 GB | +6.7% |
+| bitsandbytes FP4 | 13.343 | 2.63 GB | +59.9% |
+
+Y el dano baja conforme el modelo crece, que es justo lo que interesa:
+
+![Degradacion segun el tamano del modelo](docs/img/degradacion-por-tamano.png#gh-light-mode-only)
+![Degradacion segun el tamano del modelo](docs/img/degradacion-por-tamano-dark.png#gh-dark-mode-only)
+
+Los numeros salen de `runs/*.json` y las graficas se regeneran con
+`python scripts/grafica_comparativa.py`. El detalle completo esta en
+[`runs/COMPARATIVA.md`](runs/COMPARATIVA.md).
+
+### Lo que TinyQ **no** hace
+
+Los modelos cuantizados **generan mas lento** en PyTorch: 4.2 tokens/s contra
+14.4 del original en Qwen 3B. `QuantLinear` desempaqueta los 4 bits en cada
+multiplicacion sin un kernel dedicado, que es lo que si traen bitsandbytes y
+AutoGPTQ. El argumento de TinyQ es **memoria y calidad**, no velocidad: para
+correr rapido, exporta a GGUF y usa llama.cpp.
 
 ## Como funciona
 
@@ -50,12 +88,20 @@ mismo formato que un grupo asimetrico de 32 de TinyQ:
 TinyQ:  w = (q - z)·s        Q4_1:  w = d·q + m        d = s,  m = -z·s
 ```
 
-Por eso, para exportar a GGUF hay que cuantizar con `--group 32`:
+Por eso el exportador exige grupos de 32, que ya es el valor por defecto:
 
 ```bash
-tinyq quantize <modelo> --out out/m --bits 4 --group 32
-tinyq export out/m --out modelo-int4.gguf
+tinyq quantize <modelo>
+tinyq export <carpeta-int4> --out modelo-int4.gguf
+python scripts/verify_gguf.py <carpeta-int4> modelo-int4.gguf
 ```
+
+**Verifica siempre antes de publicar un GGUF.** Los pesos pueden estar
+perfectos y el archivo salir roto por los metadatos: un `rope_theta` mal
+escrito duplica la perplejidad sin tocar un solo peso, y el modelo sigue
+respondiendo frases cortas con normalidad, asi que a simple vista no se nota.
+`verify_gguf.py` revisa las dos cosas y devuelve codigo de error si algo no
+cuadra.
 
 El `.gguf` resultante lo lee llama.cpp, y de ahi corre en Android.
 

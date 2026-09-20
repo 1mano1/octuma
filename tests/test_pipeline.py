@@ -47,7 +47,7 @@ def test_quantize_model_replaces_linears_and_reports():
     qlayers = [m for m in model.modules() if isinstance(m, QuantLinear)]
     assert len(qlayers) == len(report.layers) == 14  # 7 lineales x 2 bloques
     assert report.compression > 3.0
-    assert all(0.0 < l.rel_fro < 0.5 for l in report.layers)
+    assert all(0.0 < capa.rel_fro < 0.5 for capa in report.layers)
     # lm_head se queda en punto flotante
     assert not isinstance(model.lm_head, QuantLinear)
 
@@ -71,7 +71,7 @@ def test_bits_overrides_apply():
     model = tiny_llama()
     cfg = QuantConfig(bits=4, group_size=32, bits_overrides={"mlp.down_proj": 8})
     report = quantize_model(model, calib(), cfg)
-    by_name = {l.name: l.bits for l in report.layers}
+    by_name = {capa.name: capa.bits for capa in report.layers}
     assert by_name["blocks.0.mlp.down_proj"] == 8
     assert by_name["blocks.0.self_attn.q_proj"] == 4
 

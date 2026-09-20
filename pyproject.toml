@@ -12,12 +12,13 @@ dependencies = [
     "numpy>=1.24",
     "typer>=0.12",
     "rich>=13.7",
+    "psutil>=5.9",  # para avisar de la memoria antes de empezar
 ]
 
 [project.optional-dependencies]
 hf = ["transformers>=4.44", "datasets>=2.20", "sentencepiece", "accelerate"]
 gguf = ["gguf>=0.10"]
-dev = ["pytest>=8", "pytest-cov"]
+dev = ["pytest>=8", "pytest-cov", "ruff>=0.6"]
 
 [project.scripts]
 tinyq = "tinyq.cli:app"
@@ -31,3 +32,30 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["out", "runs", ".venv"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # estilo (pycodestyle)
+    "F",        # errores reales: variables sin usar, imports rotos
+    "I",        # orden de los imports
+    "UP",       # sintaxis moderna de Python
+    "B",        # trampas comunes: mutables por defecto y companía
+]
+# el largo de linea lo arregla el formateador; avisar dos veces estorba
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# los scripts son andamiaje suelto: se les permiten imports despues del codigo
+"scripts/*" = ["E402", "B023"]
+# typer declara las opciones como typer.Option(...) en los valores por defecto:
+# es su forma normal de trabajar, no la trampa que B008 quiere evitar
+"src/tinyq/cli.py" = ["B008"]
+# los hooks capturan la variable del bucle con _name=name, que es el patron
+# correcto; B023 no lo reconoce y marca falsos positivos
+"src/tinyq/quantizer.py" = ["B023"]
+"src/tinyq/sensitivity.py" = ["B023"]
