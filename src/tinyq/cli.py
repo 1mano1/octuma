@@ -49,6 +49,8 @@ def quantize(
     samples: int = typer.Option(64, help="Ventanas de calibracion"),
     seq_len: int = typer.Option(512, "--seqlen", help="Tokens por ventana"),
     symmetric: bool = typer.Option(False, help="Cuantizacion simetrica"),
+    awq: bool = typer.Option(False, help="Escalado AWQ antes de cuantizar"),
+    search_scale: bool = typer.Option(True, help="Busca la escala optima por grupo"),
     device: str = typer.Option("cpu", help="cpu o cuda"),
     dtype: str = typer.Option("float32", help="Precision de carga"),
     plan: Path = typer.Option(
@@ -78,8 +80,11 @@ def quantize(
         method=method,
         symmetric=symmetric,
         bits_overrides=overrides,
+        awq=awq,
+        search_scale=search_scale,
     )
-    console.print(f"[bold]Cuantizando[/bold] a INT{bits}, grupos de {group_size} ({method})")
+    extras = ("AWQ + " if awq else "") + method
+    console.print(f"[bold]Cuantizando[/bold] a INT{bits}, grupos de {group_size} ({extras})")
     report = quantize_model(net, cal, cfg, device=device, progress=console.print)
 
     save_quantized(net, out, cfg=cfg, extra={"source_model": model, "calibration": cal.source})

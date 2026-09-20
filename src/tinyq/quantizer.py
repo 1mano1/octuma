@@ -11,6 +11,7 @@ import torch
 from torch import nn
 
 from .calibrate import CalibrationSet
+from .quant.awq import awq_scale_block
 from .quant.core import quantize_tensor
 from .quant.gptq import GPTQConfig, LayerStats, gptq_quantize
 from .quant.qlinear import QuantLinear
@@ -29,6 +30,9 @@ class QuantConfig:
     damp_percent: float = 0.01
     skip: tuple[str, ...] = DEFAULT_SKIP
     bits_overrides: dict[str, int] = field(default_factory=dict)
+    awq: bool = False
+    awq_samples: int = 1024
+    search_scale: bool = True
 
     def bits_for(self, layer_name: str) -> int:
         for pattern, bits in self.bits_overrides.items():
@@ -170,6 +174,18 @@ def quantize_model(
     inputs = capture_block_inputs(model, blocks, calib, device)
     log(f"entradas capturadas: {len(inputs)} lotes")
 
+    # GPTQ estima H = X·Xt: con menos tokens que dimensiones la matriz es
+    # singular y la compensacion de error se vuelve ruido. Pasa callado y da
+    # resultados peores que no usar GPTQ, asi que conviene avisar.
+    if cfg.method == "gptq":
+        widest = max(m.in_features for m in named_linears(blocks[0]).values())
+        if calib.n_tokens < widest:
+            log(
+                f"AVISO: {calib.n_tokens} tokens de calibracion para capas de "
+                f"hasta {widest} dimensiones. GPTQ necesita bastantes mas "
+                f"(idealmente 10x) o el resultado sera peor que RTN."
+            )
+
     report = QuantReport()
 
     for idx, block in enumerate(blocks):
@@ -184,10 +200,16 @@ def quantize_model(
             for n, m in linears.items()
         }
 
+        samples: dict[str, list[torch.Tensor]] = {n: [] for n in linears}
         handles = []
         for name, lin in linears.items():
             def hook(_mod, args, _out, _name=name):
-                stats[_name].add_batch(args[0])
+                x = args[0]
+                stats[_name].add_batch(x)
+                if cfg.awq:
+                    flat = x.detach().reshape(-1, x.shape[-1])
+                    keep = min(flat.shape[0], cfg.awq_samples)
+                    samples[_name].append(flat[:keep].float().cpu())
 
             handles.append(lin.register_forward_hook(hook, with_kwargs=False))
 
@@ -195,6 +217,33 @@ def quantize_model(
             block(*args, **kwargs)
         for h in handles:
             h.remove()
+
+        if cfg.awq:
+            hf_cfg = getattr(model, "config", None)
+            n_heads = getattr(hf_cfg, "num_attention_heads", 1)
+            n_kv = getattr(hf_cfg, "num_key_value_heads", n_heads)
+            inputs_by_layer = {
+                linears[n]: torch.cat(v)[: cfg.awq_samples]
+                for n, v in samples.items()
+                if v
+            }
+            awq_report, applied = awq_scale_block(
+                block, inputs_by_layer, n_heads, n_kv,
+                bits=cfg.bits, group_size=cfg.group_size,
+            )
+            # al plegar 1/s en la capa previa, la entrada de estas capas queda
+            # dividida por s, asi que la Hessiana se corrige analiticamente en
+            # vez de volver a correr el bloque
+            for name, lin in linears.items():
+                s = applied.get(lin)
+                if s is not None:
+                    inv = (1.0 / s).to(stats[name].H.device)
+                    stats[name].H = stats[name].H * inv.unsqueeze(0) * inv.unsqueeze(1)
+            log(
+                "  awq: "
+                + ", ".join(f"{r['group']} a={r['alpha']:.2f}" for r in awq_report)
+            )
+        samples.clear()
 
         for name, lin in linears.items():
             t0 = time.perf_counter()
@@ -208,6 +257,7 @@ def quantize_model(
                         group_size=cfg.group_size,
                         symmetric=cfg.symmetric,
                         damp_percent=cfg.damp_percent,
+                        search_scale=cfg.search_scale,
                     ),
                 )
                 rel = info["rel_fro"]
