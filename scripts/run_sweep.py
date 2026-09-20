@@ -40,19 +40,21 @@ def eval_tag(d: dict) -> str:
     Sin esto, una corrida evaluada con 4 ventanas se compara contra una base
     evaluada con 2 y el porcentaje resultante no significa nada.
     """
-    return f"w{d['eval_windows']}s{d['eval_seq_len']}"
+    # el dtype tambien entra: una corrida en float32 no es comparable con una
+    # en float16, aunque el metodo sea el mismo
+    return f"w{d['eval_windows']}s{d['eval_seq_len']}_{d['dtype']}"
 
 
 def baseline_id(short: str, d: dict) -> str:
     return f"{short}__fp16__{eval_tag(d)}"
 
 
-def run_baseline(model_cfg: dict, d: dict) -> dict:
+def run_baseline(model_cfg: dict, d: dict, force: bool = False) -> dict:
     from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
 
     rid = baseline_id(model_cfg["short"], d)
     path = RUNS / f"{rid}.json"
-    if path.exists():
+    if path.exists() and not force:
         return json.loads(path.read_text(encoding="utf-8"))
 
     model, tok = load_model(model_cfg["id"], d["device"], d["dtype"])
@@ -69,7 +71,7 @@ def run_baseline(model_cfg: dict, d: dict) -> dict:
         "perplexity": res.perplexity,
         "memory_bytes": model_size_bytes(model),
         "eval_seconds": res.seconds,
-        "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"]},
+        "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"], "dtype": d["dtype"]},
     }
     path.parent.mkdir(exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -79,14 +81,14 @@ def run_baseline(model_cfg: dict, d: dict) -> dict:
     return payload
 
 
-def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "") -> dict | None:
+def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "", force: bool = False) -> dict | None:
     from tinyq.calibrate import load_calibration
     from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
     from tinyq.quantizer import QuantConfig, quantize_model
 
     rid = f"{model_cfg['short']}__{method['name']}{tag}__{eval_tag(d)}"
     path = RUNS / f"{rid}.json"
-    if path.exists():
+    if path.exists() and not force:
         print(f"[skip] {rid}")
         return json.loads(path.read_text(encoding="utf-8"))
 
@@ -127,7 +129,7 @@ def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "") -> dict | Non
             },
             "perplexity": res.perplexity,
             "memory_bytes": model_size_bytes(model),
-            "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"]},
+            "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"], "dtype": d["dtype"]},
             "quant_summary": report.summary(),
             "total_seconds": time.perf_counter() - t0,
         }
@@ -158,7 +160,7 @@ def build_table() -> str:
 
     def key(r: dict) -> tuple:
         ev = r.get("eval", {})
-        return (r["short"], ev.get("windows"), ev.get("seq_len"))
+        return (r["short"], ev.get("windows"), ev.get("seq_len"), ev.get("dtype"))
 
     # la base solo vale si se evaluo con la misma configuracion
     base = {key(r): r for r in rows if r["method"] == "fp16"}
@@ -190,6 +192,7 @@ def main() -> None:
     ap.add_argument("--ablations", action="store_true", help="Corre las ablaciones")
     ap.add_argument("--table", action="store_true", help="Solo imprime la tabla")
     ap.add_argument("--device", help="Sobrescribe el device del yaml")
+    ap.add_argument("--force", action="store_true", help="Repite corridas ya guardadas")
     args = ap.parse_args()
 
     if args.table:
@@ -206,9 +209,9 @@ def main() -> None:
         models = [m for m in models if m["short"] == args.only]
 
     for model_cfg in models:
-        run_baseline(model_cfg, d)
+        run_baseline(model_cfg, d, args.force)
         for method in cfg["methods"]:
-            run_one(model_cfg, method, d)
+            run_one(model_cfg, method, d, force=args.force)
 
     if args.ablations:
         abl = cfg["ablations"]

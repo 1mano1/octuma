@@ -95,6 +95,28 @@ def cmd_list(args) -> None:
         )
 
 
+def _env_list(args) -> list[dict]:
+    """Variables para el contenedor: llave SSH y credenciales opcionales."""
+    env: list[dict] = []
+    if args.pubkey:
+        key = Path(args.pubkey).expanduser().read_text(encoding="utf-8").strip()
+        env.append({"key": "PUBLIC_KEY", "value": key})
+    hf = os.environ.get("HF_TOKEN") or _from_env_file("HF_TOKEN")
+    if hf:
+        env.append({"key": "HF_TOKEN", "value": hf})
+    return env
+
+
+def _from_env_file(name: str) -> str | None:
+    env = Path(__file__).resolve().parents[1] / ".env"
+    if not env.exists():
+        return None
+    for line in env.read_text(encoding="utf-8").splitlines():
+        if line.strip().startswith(f"{name}="):
+            return line.split("=", 1)[1].strip().strip('"').strip("'")
+    return None
+
+
 def cmd_create(args) -> None:
     if not args.yes:
         sys.exit("Crear un pod cuesta dinero: repite el comando con --yes")
@@ -118,6 +140,7 @@ def cmd_create(args) -> None:
                 "minVcpuCount": 8,
                 "minMemoryInGb": 32,
                 "dockerArgs": "",
+                "env": _env_list(args),
             }
         },
     )
@@ -160,6 +183,11 @@ def main() -> None:
     )
     c.add_argument("--disk", type=int, default=40)
     c.add_argument("--volume", type=int, default=100)
+    c.add_argument(
+        "--pubkey",
+        default="~/.ssh/id_ed25519.pub",
+        help="llave publica que se instala en el pod para entrar por SSH",
+    )
     c.add_argument("--yes", action="store_true")
     c.set_defaults(func=cmd_create)
 
