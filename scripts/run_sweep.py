@@ -34,14 +34,23 @@ def load_model(model_id: str, device: str, dtype: str):
     return model, tok
 
 
-def baseline_id(short: str) -> str:
-    return f"{short}__fp16"
+def eval_tag(d: dict) -> str:
+    """La configuracion de evaluacion va en el nombre del archivo.
+
+    Sin esto, una corrida evaluada con 4 ventanas se compara contra una base
+    evaluada con 2 y el porcentaje resultante no significa nada.
+    """
+    return f"w{d['eval_windows']}s{d['eval_seq_len']}"
+
+
+def baseline_id(short: str, d: dict) -> str:
+    return f"{short}__fp16__{eval_tag(d)}"
 
 
 def run_baseline(model_cfg: dict, d: dict) -> dict:
     from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
 
-    rid = baseline_id(model_cfg["short"])
+    rid = baseline_id(model_cfg["short"], d)
     path = RUNS / f"{rid}.json"
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
@@ -60,6 +69,7 @@ def run_baseline(model_cfg: dict, d: dict) -> dict:
         "perplexity": res.perplexity,
         "memory_bytes": model_size_bytes(model),
         "eval_seconds": res.seconds,
+        "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"]},
     }
     path.parent.mkdir(exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -74,7 +84,7 @@ def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "") -> dict | Non
     from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
     from tinyq.quantizer import QuantConfig, quantize_model
 
-    rid = f"{model_cfg['short']}__{method['name']}{tag}"
+    rid = f"{model_cfg['short']}__{method['name']}{tag}__{eval_tag(d)}"
     path = RUNS / f"{rid}.json"
     if path.exists():
         print(f"[skip] {rid}")
@@ -117,6 +127,7 @@ def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "") -> dict | Non
             },
             "perplexity": res.perplexity,
             "memory_bytes": model_size_bytes(model),
+            "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"]},
             "quant_summary": report.summary(),
             "total_seconds": time.perf_counter() - t0,
         }
@@ -145,18 +156,25 @@ def build_table() -> str:
         if "method" in r and "short" in r:  # ignora archivos de otro formato
             rows.append(r)
 
-    base = {r["short"]: r for r in rows if r["method"] == "fp16"}
+    def key(r: dict) -> tuple:
+        ev = r.get("eval", {})
+        return (r["short"], ev.get("windows"), ev.get("seq_len"))
+
+    # la base solo vale si se evaluo con la misma configuracion
+    base = {key(r): r for r in rows if r["method"] == "fp16"}
+
     lines = ["| Modelo | Metodo | Bits | Grupo | Memoria | Perplejidad | vs FP16 |",
              "|---|---|---|---|---|---|---|"]
     for r in sorted(rows, key=lambda x: (x["short"], x["method"])):
         cfg = r.get("config", {})
         mem = r["memory_bytes"]["total"] / 1e9
-        b = base.get(r["short"])
-        delta = (
-            f"+{(r['perplexity'] / b['perplexity'] - 1) * 100:.1f}%"
-            if b and r["method"] != "fp16"
-            else "-"
-        )
+        b = base.get(key(r))
+        if r["method"] == "fp16":
+            delta = "-"
+        elif b:
+            delta = f"{(r['perplexity'] / b['perplexity'] - 1) * 100:+.1f}%"
+        else:
+            delta = "sin base comparable"
         lines.append(
             f"| {r['short']} | {r['method']} | {cfg.get('bits', 16)} | "
             f"{cfg.get('group_size', '-')} | {mem:.2f} GB | "

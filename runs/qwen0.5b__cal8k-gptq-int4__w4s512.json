@@ -1,18 +1,18 @@
 {
-  "id": "qwen0.5b__smoke-gptq-awq-int4",
+  "id": "qwen0.5b__cal8k-gptq-int4__w4s512",
   "model": "Qwen/Qwen2.5-0.5B-Instruct",
   "short": "qwen0.5b",
-  "method": "smoke-gptq-awq-int4",
+  "method": "cal8k-gptq-int4",
   "config": {
     "bits": 4,
     "group_size": 64,
     "method": "gptq",
-    "awq": true,
+    "awq": false,
     "search_scale": true,
-    "calib_samples": 4,
-    "calib_seq_len": 128
+    "calib_samples": 16,
+    "calib_seq_len": 512
   },
-  "perplexity": 22.484783801758777,
+  "perplexity": 20.656447515457128,
   "memory_bytes": {
     "quantized": 195796992,
     "dense": 544538624,
@@ -24,12 +24,16 @@
     "fp_gb": 0.71565312,
     "q_gb": 0.1956864,
     "compression": 3.657142857142857,
-    "mean_rel_fro": 0.16032502939924598,
+    "mean_rel_fro": 0.12926696050202563,
     "worst_layer": [
       "blocks.22.self_attn.v_proj",
-      0.26886624097824097
+      0.19428925216197968
     ],
-    "seconds": 421.1026322999969
+    "seconds": 518.1323613999994
   },
-  "total_seconds": 461.01686060000793
+  "total_seconds": 567.4690792000038,
+  "eval": {
+    "windows": 4,
+    "seq_len": 512
+  }
 }

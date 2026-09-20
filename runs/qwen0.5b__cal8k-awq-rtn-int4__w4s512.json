@@ -1,18 +1,18 @@
 {
-  "id": "qwen0.5b__cal8k-rtn-int4",
+  "id": "qwen0.5b__cal8k-awq-rtn-int4__w4s512",
   "model": "Qwen/Qwen2.5-0.5B-Instruct",
   "short": "qwen0.5b",
-  "method": "cal8k-rtn-int4",
+  "method": "cal8k-awq-rtn-int4",
   "config": {
     "bits": 4,
     "group_size": 64,
     "method": "rtn",
-    "awq": false,
+    "awq": true,
     "search_scale": true,
     "calib_samples": 16,
     "calib_seq_len": 512
   },
-  "perplexity": 21.970328408013422,
+  "perplexity": 20.951658638556516,
   "memory_bytes": {
     "quantized": 195796992,
     "dense": 544538624,
@@ -24,12 +24,16 @@
     "fp_gb": 0.71565312,
     "q_gb": 0.1956864,
     "compression": 3.657142857142857,
-    "mean_rel_fro": 0.09697541816248781,
+    "mean_rel_fro": 0.10234450132009529,
     "worst_layer": [
       "blocks.16.self_attn.v_proj",
-      0.13412432372570038
+      0.14201806485652924
     ],
-    "seconds": 263.39589820001856
+    "seconds": 333.43337759998394
   },
-  "total_seconds": 320.22323460000916
+  "total_seconds": 383.7140758000023,
+  "eval": {
+    "windows": 4,
+    "seq_len": 512
+  }
 }

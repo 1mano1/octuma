@@ -71,33 +71,51 @@ cero de un byte, o sea ~4.4 bits por peso en vez de 4.
 
 ## Resultados medidos
 
-Medidos de verdad, no estimados. Laptop, CPU, wikitext-2, 6 ventanas de 512
-tokens:
+Medidos, no estimados. Qwen2.5-0.5B en CPU, INT4 con grupos de 64, calibracion
+de 8192 tokens, evaluado en wikitext-2 con 4 ventanas de 512 tokens:
 
-| Modelo | Formato | Memoria | Perplejidad | Perdida |
-|---|---|---|---|---|
-| Qwen2.5-0.5B-Instruct | FP32 | 2.52 GB | 18.872 | - |
-| Qwen2.5-0.5B-Instruct | INT4, grupo 64 | 1.28 GB | 20.302 | +7.6% |
+| Metodo | Perplejidad | vs FP16 |
+|---|---|---|
+| FP16 (sin cuantizar) | 19.218 | - |
+| RTN (redondeo directo) | 21.970 | +14.3% |
+| AWQ + RTN | 20.952 | +9.0% |
+| GPTQ | 20.656 | +7.5% |
+| **GPTQ + AWQ** | **20.029** | **+4.2%** |
 
-Los pesos de las capas lineales bajaron de 0.72 GB a 0.20 GB (3.66x) en 5.9
-minutos de CPU.
+Cada pieza aporta: el flujo completo baja la perdida de 14.3% a 4.2% en el caso
+mas dificil, que es el modelo mas chico. Los pesos de las capas lineales pasan
+de 0.72 GB a 0.20 GB (3.66x).
 
-Tres cosas honestas sobre esa tabla:
+Tres notas honestas:
 
-1. La calibracion fue minima (16 ventanas de 256 tokens). Con 128 de 2048, que
-   es lo habitual, la perdida baja bastante.
-2. Los modelos chicos sufren mas al cuantizar: tienen menos redundancia. Los
-   numeros tipicos de 4 bits (~2% de perdida) son de modelos de 7B para arriba.
-3. La memoria total baja menos que los pesos porque en este modelo los
-   embeddings (151936 x 896) pesan mas que todas las capas lineales juntas y no
-   se cuantizan. En modelos grandes son una fraccion minima.
+1. Un modelo de 0.5B es el peor escenario: tiene poca redundancia. Los numeros
+   tipicos de 4 bits (1-2% de perdida) son de modelos de 3B para arriba.
+2. La calibracion de esta tabla es corta (8192 tokens) porque corrio en una
+   laptop. El barrido de `experiments/sweep.yaml` usa 262144.
+3. La memoria total baja menos que los pesos porque aqui los embeddings
+   (151936 x 896) pesan mas que todas las capas lineales juntas y no se
+   cuantizan. En modelos grandes son una fraccion minima.
 
 Reproducirlo:
 
 ```bash
-tinyq quantize Qwen/Qwen2.5-0.5B-Instruct --out out/qwen05b-int4 --bits 4 --group 64
-python scripts/benchmark.py Qwen/Qwen2.5-0.5B-Instruct out/qwen05b-int4 --windows 6
+python scripts/run_sweep.py experiments/smoke.yaml   # ~35 min de CPU
+python scripts/run_sweep.py --table
 ```
+
+### Cuanta calibracion hace falta
+
+GPTQ estima `H = X·Xᵀ` por capa. Con menos tokens que dimensiones tenga la
+capa, esa matriz es singular y la compensacion de error se vuelve ruido: el
+resultado sale **peor** que no usar GPTQ. Lo medimos:
+
+| Tokens de calibracion | GPTQ | GPTQ + AWQ |
+|---|---|---|
+| 512 (menos que las 896 dimensiones) | peor que RTN | mucho peor que RTN |
+| 8192 | +7.5% | +4.2% |
+
+Por eso `quantize_model` avisa cuando la calibracion no alcanza. Regla practica:
+al menos 10 veces la dimension de la capa mas ancha.
 
 ## Estado
 
