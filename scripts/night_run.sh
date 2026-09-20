@@ -43,8 +43,9 @@ if [ -n "$TOKEN" ]; then
     short=$(basename "$dir" | cut -d- -f1)
     gguf="out/${short}-int4.gguf"
     repo="${USER_HF}/$(basename "$dir" | sed 's/-g32//')-TinyQ"
-    say "subiendo $dir -> $repo"
-    python scripts/upload_hf.py "$dir" --repo "$repo" \
+    # privados a proposito: se publican cuando el autor decida
+    say "subiendo $dir -> $repo (privado)"
+    python scripts/upload_hf.py "$dir" --repo "$repo" --private \
       ${gguf:+--gguf "$gguf"} >> "$LOG" 2>&1 || say "fallo la subida de $short"
   done
   say "subidas terminadas"
