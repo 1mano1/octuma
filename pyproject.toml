@@ -1,0 +1,33 @@
+[project]
+name = "tinyq"
+version = "0.1.0"
+description = "Cuantizacion INT4/INT8 de modelos de lenguaje para equipos modestos y telefonos Android"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Imanol Rodriguez" }]
+dependencies = [
+    "torch>=2.2",
+    "safetensors>=0.4",
+    "numpy>=1.24",
+    "typer>=0.12",
+    "rich>=13.7",
+]
+
+[project.optional-dependencies]
+hf = ["transformers>=4.44", "datasets>=2.20", "sentencepiece", "accelerate"]
+gguf = ["gguf>=0.10"]
+dev = ["pytest>=8", "pytest-cov"]
+
+[project.scripts]
+tinyq = "tinyq.cli:app"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
