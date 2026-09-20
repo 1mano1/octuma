@@ -69,6 +69,36 @@ niveles completos en vez de desperdiciar la mitad del rango.
 El costo es pequeno: por cada 64 pesos se guarda una escala en FP16 y un punto
 cero de un byte, o sea ~4.4 bits por peso en vez de 4.
 
+## Resultados medidos
+
+Medidos de verdad, no estimados. Laptop, CPU, wikitext-2, 6 ventanas de 512
+tokens:
+
+| Modelo | Formato | Memoria | Perplejidad | Perdida |
+|---|---|---|---|---|
+| Qwen2.5-0.5B-Instruct | FP32 | 2.52 GB | 18.872 | - |
+| Qwen2.5-0.5B-Instruct | INT4, grupo 64 | 1.28 GB | 20.302 | +7.6% |
+
+Los pesos de las capas lineales bajaron de 0.72 GB a 0.20 GB (3.66x) en 5.9
+minutos de CPU.
+
+Tres cosas honestas sobre esa tabla:
+
+1. La calibracion fue minima (16 ventanas de 256 tokens). Con 128 de 2048, que
+   es lo habitual, la perdida baja bastante.
+2. Los modelos chicos sufren mas al cuantizar: tienen menos redundancia. Los
+   numeros tipicos de 4 bits (~2% de perdida) son de modelos de 7B para arriba.
+3. La memoria total baja menos que los pesos porque en este modelo los
+   embeddings (151936 x 896) pesan mas que todas las capas lineales juntas y no
+   se cuantizan. En modelos grandes son una fraccion minima.
+
+Reproducirlo:
+
+```bash
+tinyq quantize Qwen/Qwen2.5-0.5B-Instruct --out out/qwen05b-int4 --bits 4 --group 64
+python scripts/benchmark.py Qwen/Qwen2.5-0.5B-Instruct out/qwen05b-int4 --windows 6
+```
+
 ## Estado
 
 - [x] Cuantizacion por grupos INT2/INT4/INT8, simetrica y asimetrica
