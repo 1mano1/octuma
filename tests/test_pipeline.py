@@ -82,11 +82,50 @@ def test_save_and_load_roundtrip(tmp_path):
     ids = torch.randint(0, VOCAB, (1, 32))
     before = model(ids).logits
 
-    save_quantized(model, tmp_path, cfg=QuantConfig(bits=4, group_size=32))
+    save_quantized(model, tmp_path, cfg=QuantConfig(bits=4, group_size=32), fp16_dense=False)
     restored = load_quantized(tiny_llama(), tmp_path)
     after = restored(ids).logits
 
     assert torch.allclose(before, after, atol=1e-4)
+
+
+def test_fp16_dense_shrinks_file_without_breaking_outputs(tmp_path):
+    model = tiny_llama()
+    quantize_model(model, calib(), QuantConfig(bits=4, group_size=32))
+    ids = torch.randint(0, VOCAB, (1, 32))
+    before = model(ids).logits
+
+    save_quantized(model, tmp_path / "fp32", fp16_dense=False)
+    save_quantized(model, tmp_path / "fp16", fp16_dense=True)
+    from tinyq.export.tq import disk_size
+
+    assert disk_size(tmp_path / "fp16") < disk_size(tmp_path / "fp32")
+
+    after = load_quantized(tiny_llama(), tmp_path / "fp16")(ids).logits
+    rel = (after - before).norm() / before.norm()
+    assert rel < 5e-3
+
+
+def test_save_and_load_with_tied_embeddings(tmp_path):
+    from transformers import LlamaConfig, LlamaForCausalLM
+
+    cfg = LlamaConfig(
+        vocab_size=VOCAB, hidden_size=64, intermediate_size=128,
+        num_hidden_layers=1, num_attention_heads=4, num_key_value_heads=2,
+        max_position_embeddings=64, tie_word_embeddings=True,
+    )
+    torch.manual_seed(0)
+    model = LlamaForCausalLM(cfg).eval()
+    assert model.lm_head.weight.data_ptr() == model.model.embed_tokens.weight.data_ptr()
+
+    quantize_model(model, calib(), QuantConfig(bits=4, group_size=32))
+    ids = torch.randint(0, VOCAB, (1, 32))
+    before = model(ids).logits
+
+    save_quantized(model, tmp_path, fp16_dense=False)
+    restored = LlamaForCausalLM(cfg).eval()
+    restored = load_quantized(restored, tmp_path)
+    assert torch.allclose(before, restored(ids).logits, atol=1e-4)
 
 
 def test_model_size_reports_savings():

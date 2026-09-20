@@ -51,6 +51,9 @@ def quantize(
     symmetric: bool = typer.Option(False, help="Cuantizacion simetrica"),
     device: str = typer.Option("cpu", help="cpu o cuda"),
     dtype: str = typer.Option("float32", help="Precision de carga"),
+    plan: Path = typer.Option(
+        None, "--plan", help="JSON de precision mixta generado por 'tinyq analyze'"
+    ),
 ) -> None:
     """Calibra, cuantiza y guarda el modelo en formato .tq."""
     from .calibrate import load_calibration
@@ -63,7 +66,19 @@ def quantize(
     console.print(f"[bold]Calibrando[/bold] con {calib}: {samples} x {seq_len} tokens")
     cal = load_calibration(calib, tok, n_samples=samples, seq_len=seq_len)
 
-    cfg = QuantConfig(bits=bits, group_size=group_size, method=method, symmetric=symmetric)
+    overrides: dict[str, int] = {}
+    if plan:
+        raw = json.loads(plan.read_text(encoding="utf-8"))
+        overrides = {k.split(".", 2)[-1]: int(v) for k, v in raw.items()}
+        console.print(f"Precision mixta: {len(overrides)} patrones a mas bits")
+
+    cfg = QuantConfig(
+        bits=bits,
+        group_size=group_size,
+        method=method,
+        symmetric=symmetric,
+        bits_overrides=overrides,
+    )
     console.print(f"[bold]Cuantizando[/bold] a INT{bits}, grupos de {group_size} ({method})")
     report = quantize_model(net, cal, cfg, device=device, progress=console.print)
 
@@ -147,6 +162,46 @@ def evaluate(
     if out:
         out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         console.print(f"Reporte -> {out}")
+
+
+@app.command()
+def analyze(
+    model: str = typer.Argument(..., help="Id de Hugging Face o carpeta local"),
+    calib: str = typer.Option("wikitext2", help="Dataset de calibracion"),
+    samples: int = typer.Option(16, help="Ventanas de calibracion"),
+    seq_len: int = typer.Option(256, "--seqlen"),
+    group_size: int = typer.Option(64, "--group"),
+    target_bits: float = typer.Option(4.5, help="Promedio de bits objetivo"),
+    device: str = typer.Option("cpu"),
+    out: Path = typer.Option(None, "--out", "-o", help="Guarda el plan en JSON"),
+) -> None:
+    """Mide que capas sufren mas a 4 bits y propone un plan de precision mixta."""
+    from .calibrate import load_calibration
+    from .sensitivity import analyze_sensitivity
+
+    console.print(f"[bold]Cargando[/bold] {model}")
+    net, tok = _load_model(model, device)
+    cal = load_calibration(calib, tok, n_samples=samples, seq_len=seq_len)
+
+    console.print("[bold]Analizando sensibilidad[/bold] (error de salida por capa)")
+    report = analyze_sensitivity(
+        net, cal, bits_options=(4, 8), group_size=group_size,
+        device=device, progress=console.print,
+    )
+
+    table = Table(title="Capas mas sensibles")
+    table.add_column("Capa")
+    table.add_column("Error INT4", justify="right")
+    table.add_column("Error INT8", justify="right")
+    for name, e4, e8 in report.table(top=12):
+        table.add_row(name, f"{e4:.5f}", f"{e8:.5f}")
+    console.print(table)
+
+    plan = report.plan_mixed_precision(target_avg_bits=target_bits)
+    console.print(f"Plan: {len(plan)} capas a INT8 para un promedio de {target_bits} bits")
+    if out:
+        out.write_text(json.dumps(plan, indent=2), encoding="utf-8")
+        console.print(f"Plan -> {out}  (usalo con: tinyq quantize ... --plan {out})")
 
 
 @app.command()

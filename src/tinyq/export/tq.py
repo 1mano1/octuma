@@ -25,8 +25,13 @@ def save_quantized(
     out_dir: str | Path,
     cfg: Any = None,
     extra: dict[str, Any] | None = None,
+    fp16_dense: bool = True,
 ) -> Path:
-    """Guarda pesos cuantizados + los densos restantes en `out_dir`."""
+    """Guarda pesos cuantizados + los densos restantes en `out_dir`.
+
+    `fp16_dense` baja a FP16 lo que no se cuantiza (embeddings y normas), que
+    es donde se va la mayor parte del archivo en modelos con vocabulario grande.
+    """
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -49,10 +54,21 @@ def save_quantized(
         }
 
     qnames = set(qlayers)
+    # Muchos modelos atan lm_head a los embeddings: safetensors rechaza dos
+    # nombres que apuntan a la misma memoria, asi que se guarda una sola copia.
+    seen: dict[tuple[int, int], str] = {}
+    tied: dict[str, str] = {}
     for name, param in model.state_dict().items():
         owner = name.rsplit(".", 1)[0]
         if owner in qnames:
             continue
+        key = (param.data_ptr(), param.numel())
+        if key in seen:
+            tied[name] = seen[key]
+            continue
+        seen[key] = name
+        if fp16_dense and param.dtype == torch.float32:
+            param = param.half()
         tensors[name] = param.contiguous()
 
     save_file(tensors, out / "model.tq.safetensors")
@@ -60,6 +76,7 @@ def save_quantized(
     meta = {
         "format_version": FORMAT_VERSION,
         "layers": layers_meta,
+        "tied": tied,
         "config": asdict(cfg) if hasattr(cfg, "__dataclass_fields__") else (cfg or {}),
         "model_type": getattr(getattr(model, "config", None), "model_type", "unknown"),
         **(extra or {}),
@@ -102,6 +119,9 @@ def load_quantized(model: nn.Module, in_dir: str | Path, device: str = "cpu") ->
         for k, v in tensors.items()
         if not any(k.startswith(f"{n}.") for n in meta["layers"])
     }
+    for dup, canonical in meta.get("tied", {}).items():
+        dense[dup] = dense[canonical]
+
     missing, unexpected = model.load_state_dict(dense, strict=False)
     if unexpected:
         raise RuntimeError(f"tensores inesperados en el archivo: {unexpected[:5]}")

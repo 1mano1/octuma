@@ -7,6 +7,9 @@ from typing import Iterable, Sequence
 
 import torch
 
+# datasets >= 5 exige el id completo del repositorio
+WIKITEXT_REPO = "Salesforce/wikitext"
+
 
 @dataclass
 class CalibrationSet:
@@ -67,7 +70,7 @@ def load_wikitext2(
     """Descarga wikitext-2 y arma el conjunto de calibracion."""
     from datasets import load_dataset
 
-    ds = load_dataset("wikitext", "wikitext-2-raw-v1", split=split)
+    ds = load_dataset(WIKITEXT_REPO, "wikitext-2-raw-v1", split=split)
     return build_from_texts(
         ds["text"],
         tokenizer,
