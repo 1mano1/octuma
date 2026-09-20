@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+*.safetensors
+*.gguf
+*.tq
+out/
+runs/
+.cache/
+.pytest_cache/
+*.egg-info/
