@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 
 import torch
 
-from .core import pack_bits, QuantizedTensor
+from .core import QuantizedTensor, pack_bits
 from .search import search_group_params
 
 

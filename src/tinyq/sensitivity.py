@@ -19,14 +19,13 @@ from torch import nn
 
 from .calibrate import CalibrationSet
 from .quant.core import quantize_tensor
+from .quant.gptq import LayerStats
 from .quantizer import (
     QuantConfig,
-    _Catcher,
     capture_block_inputs,
     find_blocks,
     named_linears,
 )
-from .quant.gptq import LayerStats
 
 
 @dataclass
@@ -48,13 +47,13 @@ class SensitivityReport:
     layers: list[LayerSensitivity] = field(default_factory=list)
 
     def ranked(self) -> list[LayerSensitivity]:
-        return sorted(self.layers, key=lambda l: l.gain_8_over_4(), reverse=True)
+        return sorted(self.layers, key=lambda c: c.gain_8_over_4(), reverse=True)
 
     def plan_mixed_precision(
         self, target_avg_bits: float = 4.5, high_bits: int = 8, low_bits: int = 4
     ) -> dict[str, int]:
         """Sube a `high_bits` las capas mas sensibles sin pasarse del promedio."""
-        total = sum(l.n_params for l in self.layers)
+        total = sum(capa.n_params for capa in self.layers)
         budget = (target_avg_bits - low_bits) * total / (high_bits - low_bits)
         plan: dict[str, int] = {}
         spent = 0
@@ -69,8 +68,8 @@ class SensitivityReport:
 
     def table(self, top: int = 15) -> list[tuple[str, float, float]]:
         return [
-            (l.name, l.error_by_bits.get(4, 0.0), l.error_by_bits.get(8, 0.0))
-            for l in self.ranked()[:top]
+            (capa.name, capa.error_by_bits.get(4, 0.0), capa.error_by_bits.get(8, 0.0))
+            for capa in self.ranked()[:top]
         ]
 
 

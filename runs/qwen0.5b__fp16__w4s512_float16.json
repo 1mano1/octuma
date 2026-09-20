@@ -1,0 +1,19 @@
+{
+  "id": "qwen0.5b__fp16__w4s512_float16",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "short": "qwen0.5b",
+  "method": "fp16",
+  "perplexity": 19.207243012178115,
+  "memory_bytes": {
+    "quantized": 0,
+    "dense": 987977728,
+    "embeddings": 272269312,
+    "total": 1260247040
+  },
+  "eval_seconds": 0.5150954269338399,
+  "eval": {
+    "windows": 4,
+    "seq_len": 512,
+    "dtype": "float16"
+  }
+}

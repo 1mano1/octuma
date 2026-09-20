@@ -1,0 +1,302 @@
+# CLAUDE.md — TinyQ
+
+Notas para retomar el proyecto sin tener que reconstruir el contexto.
+Ultima actualizacion: 2026-09-20.
+
+## Que es
+
+Libreria de Python que cuantiza modelos de lenguaje a 4 y 8 bits para que
+corran en equipos modestos. Cuatro pasos: calibrar, cuantizar, evaluar,
+exportar (`.tq` para PyTorch y GGUF para llama.cpp y Android).
+
+Proyecto hermano: **Lumen** (`C:/ProyectosIA_Imanol/Lumen/ALCANCE.md`), la app
+Android que corre estos modelos en el telefono. TinyQ comprime, Lumen ejecuta.
+El nombre "Lumen" es provisional y esta muy ocupado (telecom, Unreal Engine).
+
+## Estado: que esta medido y que no
+
+**Barrido principal: 33 corridas** en `runs/*.json`, familia Qwen2.5
+(0.5B, 1.5B, 3B, 7B), evaluadas con perplejidad en wikitext-2, 20 ventanas
+de 2048 tokens sin solape.
+
+El orden de metodos es **identico en los cuatro modelos**, que es la mejor
+senal de que la implementacion es correcta:
+
+    GPTQ+AWQ  >  GPTQ  >  AWQ-RTN  >  RTN
+
+Degradacion del mejor metodo frente a FP16: 5.2% (0.5B), 2.3% (1.5B),
+2.4% (3B), 1.8% (7B con GPTQ solo). **Entre mas grande el modelo, menos duele
+cuantizar**, que es el resultado vendible del proyecto.
+
+INT8 es practicamente gratis (+0.03% maximo) pero solo comprime x1.91.
+INT4 comprime x3.66.
+
+### Comparacion contra terceros (lo que faltaba)
+
+Todo lo anterior era TinyQ contra si misma. En Qwen 3B, misma prueba:
+
+| Herramienta | Perplejidad | Memoria | Perdida vs FP16 |
+|---|---|---|---|
+| FP16 | 8.347 | 6.79 GB | — |
+| **TinyQ GPTQ+AWQ** | **8.549** | 2.76 GB | **+2.4%** |
+| TinyQ GPTQ | 8.578 | 2.76 GB | +2.8% |
+| bitsandbytes NF4 | 8.906 | 2.63 GB | +6.7% |
+| bitsandbytes FP4 | 13.343 | 2.63 GB | +59.9% |
+
+TinyQ hace **menos de la mitad de dano** que bitsandbytes NF4, que es el
+cuantizador por defecto de Hugging Face y el de QLoRA. Script:
+`scripts/compare_baselines.py`.
+
+**Sigue pendiente**: comparar contra otra implementacion de GPTQ. AutoGPTQ y
+su sucesor GPTQModel **no instalan** (su `pyproject.toml` es invalido para
+setuptools moderno, y no se arregla desde fuera). Es el rival tecnico mas
+directo y hoy no hay numero contra el.
+
+## RESUELTO: el export a GGUF (2026-09-20)
+
+Eran **tres bugs de metadatos, ninguno de cuantizacion**. Los pesos siempre
+estuvieron bien: dequantizados desde el `.tq` y desde el GGUF coinciden con
+norma relativa 0.0004, que es solo redondeo de float16.
+
+En Qwen2.5-0.5B, 5 ventanas de 512 medidas con `llama-perplexity`:
+
+| Version | Perplejidad |
+|---|---|
+| GGUF original | 44.36 |
+| solo con rope corregido | 31.51 |
+| **con los tres arreglos** | **15.31** |
+
+1. **`rope_theta` caia a un default.** transformers 5 lo movio dentro de
+   `cfg.rope_parameters`, y `getattr(cfg, "rope_theta", 10000.0)` escribia
+   10000 donde Qwen2.5 usa 1000000. Ahora `_rope_theta()` lo busca en ambos
+   sitios y **lanza error si no aparece**, en vez de inventarse un valor.
+2. **El pre-tokenizador decia `default`** en lugar de `qwen2`: el texto se
+   partia distinto a como el modelo aprendio. Ahora sale de `_PRE_POR_ARCH`.
+3. **El `eos_token` no se escribia**: `<|im_end|>` vive en `added_tokens`, no
+   en `model.vocab`, y se buscaba solo en vocab.
+
+Tres tests de regresion en `tests/test_gguf.py`. **55 tests pasan.**
+
+El patron comun, otra vez: **un default que tapa el fallo en silencio**. Lo
+mismo que hacia `night_run.sh` al anunciar "todo listo" con el barrido muerto.
+
+### Verificado sobre el modelo publicado
+
+El `.gguf` del 0.5B que esta en Hugging Face, medido con 10 ventanas de 512:
+
+| | Perplejidad |
+|---|---|
+| el publicado | 41.85 |
+| re-exportado con los arreglos | **17.73** |
+
+2.4x mejor. El archivo publicado estaba degradado de verdad; no era cosa del
+modelo de prueba. El nuevo esta en `out/qwen05b-int4-fix.gguf`, **sin subir**.
+
+### Pendiente de esto
+
+- Re-exportar los `.gguf` del 1.5B y el 3B y resubir los tres. No hace falta
+  recuantizar ni GPU: las carpetas `.tq` estan en Hugging Face.
+- Rehacer la comparativa del 3B contra Q4_K_M: la vieja (+111%) medía el bug,
+  no la herramienta.
+
+## La CLI rediseñada (2026-09-20)
+
+Tres comandos de entrada, segun `docs/PLAN_CLI.md`:
+
+- `tinyq quantize <modelo>` — sin `--out` (se deduce), sin elegir metodo
+  (GPTQ+AWQ, grupos de 32, 128x2048: **la configuracion que gana el barrido**),
+  con `--device auto` y `--dtype auto`. Antes venia con AWQ apagado y 64x512,
+  asi que el comando obvio daba peores resultados que la tabla del README.
+- `tinyq compare <carpeta>` — cuantizado contra original en una sola tabla, y
+  la linea que resume: "1.94x mas chico por +5.9% de perplejidad".
+- `tinyq try <carpeta>` — chat en la terminal, `-p` para una sola pregunta, y
+  `--side-by-side` para las 10 preguntas contra el original.
+
+Ademas, **avisa de la memoria antes de descargar nada**: "Este modelo pide
+~8.6 GB y la RAM tiene 7.3 GB libres". Reventar a los diez minutos tras bajar
+15 GB era la peor primera impresion posible.
+
+`tests/test_cli.py` fija los defaults para que no vuelvan a divergir de lo
+medido. **60 tests pasan.**
+
+## Velocidad: el cuantizado es 3.4x mas lento
+
+14.4 tok/s el original contra 4.2 el cuantizado (Qwen 3B, GPU). `QuantLinear`
+desempaqueta los 4 bits a FP16 en cada multiplicacion con PyTorch normal, sin
+kernel CUDA. El README **no puede prometer velocidad**: el argumento es
+memoria y calidad. Siguiente trabajo natural: un kernel de 4 bits.
+
+## Hallazgos que hay que respetar
+
+### 1. La busqueda de escala no funciona de forma consistente
+
+`rtn-int4-search` ayuda en 0.5B y 3B, y **estorba** en 1.5B y 7B. En el 7B
+reduce el error de reconstruccion de los pesos (0.09503 -> 0.09152) pero
+**empeora** la perplejidad (7.4386 -> 7.5189).
+
+Eso contradice el supuesto en el que descansa la tecnica: minimizar el error
+de los pesos no equivale a preservar la calidad del modelo. Es un resultado
+negativo que vale la pena reportar, no un bug que esconder.
+
+Detalle completo en `runs/NOTA_rtn_search.md`. Las corridas originales eran
+invalidas (duplicados de `rtn-int4`) y estan guardadas en `runs/invalidos/`.
+
+### 2. Un `git pull` a mitad del barrido no cambia nada
+
+Python carga los modulos al arrancar. El barrido de la noche del 19 siguio
+usando codigo viejo horas despues del pull, y **nada en los resultados lo
+delataba**. Por eso cada JSON guarda ahora `code.commit`, `code.dirty` y
+`code.started_at`, sellados al importar el modulo.
+
+Si se cambia el codigo, hay que **reiniciar el proceso**, no solo hacer pull.
+
+### 3. El 7B con AWQ no cabe en 50 GB de RAM
+
+El contenedor de RunPod tiene 50 GB (lo que reporta `free` son los 503 GB del
+host, no sirve). Las corridas con AWQ del 7B mueren por OOM justo despues de
+cargar los pesos, **sin traceback**: el log corta y ya. Si un proceso
+desaparece en silencio, revisar `/sys/fs/cgroup/memory.events`.
+
+Las 4 corridas del 7B que si funcionaron no usan AWQ. Faltan `awq-rtn-int4` y
+`gptq-awq-int4`. Opciones: bajar `calib_samples` solo para el 7B (rompe la
+comparabilidad) o liberar las activaciones capturadas por bloque (correcto,
+pero hay que tocar el motor y reprobarlo en un modelo chico).
+
+## Trampas de infraestructura ya resueltas
+
+- **`HF_HUB_DISABLE_XET=1`** es obligatorio. El backend Xet de Hugging Face
+  revienta al reconstruir shards grandes con un `CAS Client Error` que parece
+  un fallo de red y no lo es.
+- **`HF_HOME` debe apuntar a `/workspace`**. El disco de root son 30 GB y un
+  7B en FP16 pide 15.
+- **El vigilante fallaba en silencio.** `terminate()` hacia `exit 0` sin mirar
+  el resultado; un 403 pasajero de RunPod dejo el pod encendido 6 horas. Ahora
+  reintenta 8 veces con espera creciente y **verifica que el pod desaparecio**.
+- **`night_run.sh` mentia.** Ningun paso miraba su codigo de salida, asi que
+  anunciaba "todo listo" con el barrido muerto por OOM. Ahora cada paso pasa
+  por `paso()`, distingue el 137 del OOM killer y termina con "CON N fallos".
+- **El pod no se apaga sin verificar los modelos.** El centinela
+  `/workspace/.modelos_a_salvo` solo se escribe tras consultar Hugging Face y
+  comprobar que cada repo existe y trae archivos.
+
+## Modelos publicados
+
+Privados en Hugging Face, cada uno con carpeta `.tq` y `.gguf` (9 archivos):
+
+- `Imanol11/qwen0.5b-int4-TinyQ` (1.02 GB)
+- `Imanol11/qwen1.5b-int4-TinyQ` (2.58 GB)
+- `Imanol11/qwen3b-int4-TinyQ` (4.68 GB)
+
+No hay 7B publicado. Los publica el autor cuando decida, no antes.
+
+## Pendientes
+
+1. Repetir `awq-rtn-int4` y `gptq-awq-int4` del 7B (ver hallazgo 3).
+2. Comparar contra una implementacion real de GPTQ.
+3. **Arreglar el export a GGUF** (ver arriba). Es lo mas urgente: bloquea a
+   Lumen y los .gguf publicados estan degradados.
+4. Rehacer y resubir los .gguf una vez arreglado.
+5. Rediseñar la CLI y la documentacion segun `docs/PLAN_CLI.md`.
+6. Decidir nombre definitivo del proyecto y de la app antes de abrirlos.
+
+## Entorno local (Windows)
+
+Python **si** esta instalado, en
+`C:/Users/brosm/AppData/Local/Programs/Python/Python311/python.exe` (3.11.0).
+Lo que hay en el PATH es el stub de la Microsoft Store, que responde
+"Python was not found": usar `py` o la ruta completa, nunca `python` a secas.
+
+Con `pip install -e . --no-deps` los tests corren en local: **47 pasan, 1 se
+salta**. No hace falta el pod para verificar cambios de codigo. El torch local
+es la version CPU.
+
+## Pendientes y donde correrlos
+
+Hay una **RTX 4060 con 8 GB de VRAM** en otra PC del autor. Eso cambia que
+conviene correr donde:
+
+| Tarea | Donde | Por que |
+|---|---|---|
+| Medir GGUF con `llama-perplexity` | **RTX 4060** | En CPU cada medicion del 3B tarda ~1 h; con GPU son minutos. |
+| Re-exportar y verificar los `.gguf` del 1.5B y el 3B | cualquiera | Solo pide RAM, no GPU. |
+| Las 2 corridas AWQ del 7B | **ni ahi** | El 7B en FP16 son 15.2 GB: no cabe en 8 GB de VRAM. Necesita GPU alquilada o el arreglo de memoria (liberar activaciones por bloque). |
+| Cuantizar hasta 1.5B | RTX 4060 | Comodo. |
+| Cuantizar el 3B | RTX 4060, justo | FP16 son 6.79 GB de 8: cabe para evaluar, apretado para cuantizar con AWQ. |
+
+### Comandos para la RTX 4060
+
+```bash
+# medir un GGUF con GPU (llama.cpp compilado con CUDA)
+llama-perplexity -m modelo.gguf -f wikitext2.txt -c 2048 --chunks 20 -ngl 99
+
+# re-exportar y verificar (no necesita GPU)
+tinyq export <carpeta-tq> --out modelo-int4.gguf
+python scripts/verify_gguf.py <carpeta-tq> modelo-int4.gguf
+```
+
+Los binarios de llama.cpp para Windows se bajan ya compilados de
+`github.com/ggml-org/llama.cpp/releases` (el zip `bin-win-cuda-12.4-x64`, o
+`bin-win-cpu-x64` si no se quiere CUDA). No hace falta compilar nada.
+
+### Lo que falta medir
+
+1. **El GGUF del 3B arreglado, con 20 ventanas**, para ponerlo en la misma
+   tabla que Q4_K_M (7.824) y Q4_0 (8.163). Con 8 ventanas dio **6.73**, pero
+   no es comparable: distinto tramo del texto.
+2. **Re-exportar los `.gguf` del 1.5B y el 3B** y resubir los tres a Hugging
+   Face. El del 0.5B ya esta re-exportado en `out/qwen05b-int4-fix.gguf` y el
+   del 3B en `out/qwen3b-int4-fix.gguf`, **ninguno subido todavia**.
+3. **Tokens por segundo en un telefono real**, cuando Lumen corra. El
+   portafolio tenia una columna "Pixel 7 (tok/s)" **inventada** que hubo que
+   quitar: ese hueco se llena con mediciones reales del celular del autor, y es
+   un dato que casi nadie publica.
+
+## El portafolio de Figma (actualizado 2026-09-20)
+
+Archivo `nc1HVKdJK4VZsoAyxsOyuz`, pagina **Portafolio V3 — Desktop**, frame
+`tinyq — Desktop` (95:5999).
+
+**Todos los benchmarks que tenia eran inventados.** Hablaban de Llama-3 8B,
+Mistral 7B y Phi-3 — modelos que nunca se midieron — y la nota al pie decia
+"valores de ejemplo", pero a simple vista parecian mediciones reales.
+
+Corregido: la tabla y el grafico de memoria ahora son Qwen2.5 con los numeros
+de `runs/`; la columna "Pixel 7 (tok/s)" se cambio por el metodo; "GGUF · ONNX
+· TFLite" paso a "GGUF · .tq" (ONNX y TFLite no existen en el codigo); la
+version "v0.3.0" a 0.1.0; el chip "16 GB → 4.3 GB · 98.6% precision" a los
+datos reales del 7B; "Star 1.2k" quitado; y el bloque de codigo animado (13
+variantes) usaba `from tinyq import Quantizer`, una **API que no existe**, y
+ahora usa la real.
+
+Si se vuelven a tocar esos numeros, salen de `runs/COMPARATIVA.md`.
+
+## Estructura y calidad (2026-09-20)
+
+- **`CONTRIBUTING.md`**: instalacion, ciclo `ruff` + `pytest`, mapa de
+  carpetas y las dos reglas que ya costaron caro (un default nunca tapa un
+  fallo; los defaults son lo medido como mejor).
+- **`ruff` configurado y el repo en verde.** 46 avisos arreglados. Los ignores
+  estan justificados en `pyproject.toml`: `typer.Option` en los defaults es el
+  modo normal de typer (B008), y los hooks capturan la variable del bucle con
+  `_name=name`, que B023 no reconoce.
+- **CI ampliada**: Linux y **Windows**, Python 3.10/3.11/3.12, mas un job de
+  estilo. Windows importa porque es donde aparecen los problemas de rutas y
+  codificacion, y el proyecto apunta a equipos modestos.
+- **`scripts/README.md`**: separa experimentos, diagnostico e infraestructura,
+  y deja claro que nada de eso es parte del paquete.
+- **`verify_gguf.py` completado**: antes solo comparaba pesos — por eso no
+  cazo el bug de los metadatos. Ahora los revisa y **devuelve codigo de
+  error**, asi que puede ir en CI para impedir publicar un GGUF roto.
+- **`scripts/grafica_comparativa.py`**: genera las cuatro imagenes del README
+  (claro/oscuro) leyendo `runs/*.json`. Los numeros no se escriben a mano.
+
+**Pendiente de estructura**: `cli.py` va por 600 lineas con 7 comandos y pide
+partirse en un paquete `cli/`. No se hizo para no mezclarlo con trabajo a
+medias.
+
+## Como trabaja el autor
+
+Imanol, de Colima, habla espanol informal. Prefiere explicaciones directas y
+sin rodeos: si algo fallo, decirlo de frente con el numero que lo prueba.
+Quiere resultados honestos antes que resultados bonitos — un hallazgo negativo
+bien medido le sirve mas que una tabla sin asteriscos.

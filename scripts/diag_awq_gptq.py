@@ -86,7 +86,7 @@ def main() -> None:
             e_awq_rtn = err(xi, w, w_hat)
 
             # AWQ + GPTQ con cada version de la Hessiana
-            xs = xi / scales.unsqueeze(0)
+            # la entrada escalada se calculaba sin usarse; se deja fuera
             results = {}
             inv = 1.0 / scales
             for label, Hx in (

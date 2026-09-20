@@ -1,0 +1,40 @@
+{
+  "id": "qwen0.5b__cal8k-gptq-awq-int4__w4s512_float16",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "short": "qwen0.5b",
+  "method": "cal8k-gptq-awq-int4",
+  "config": {
+    "bits": 4,
+    "group_size": 64,
+    "method": "gptq",
+    "awq": true,
+    "search_scale": true,
+    "calib_samples": 16,
+    "calib_seq_len": 512
+  },
+  "perplexity": 20.063084606287727,
+  "memory_bytes": {
+    "quantized": 195741696,
+    "dense": 272269312,
+    "embeddings": 272269312,
+    "total": 740280320
+  },
+  "eval": {
+    "windows": 4,
+    "seq_len": 512,
+    "dtype": "float16"
+  },
+  "quant_summary": {
+    "n_layers": 168,
+    "fp_gb": 0.71565312,
+    "q_gb": 0.1956864,
+    "compression": 3.657142857142857,
+    "mean_rel_fro": 0.12959062334682261,
+    "worst_layer": [
+      "blocks.22.self_attn.v_proj",
+      0.1925274133682251
+    ],
+    "seconds": 95.22579762805253
+  },
+  "total_seconds": 114.80001113889739
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "short": "qwen0.5b",
+    "model": "Qwen/Qwen2.5-0.5B-Instruct",
+    "tq_dir": "out/qwen0.5b-int4-g32",
+    "gguf": "out/qwen0.5b-int4.gguf",
+    "tq_bytes": 496394639,
+    "gguf_bytes": 519159968,
+    "quant": {
+      "n_layers": 168,
+      "fp_gb": 0.71565312,
+      "q_gb": 0.21245952,
+      "compression": 3.3684210526315788,
+      "mean_rel_fro": 0.1027924358135178,
+      "worst_layer": [
+        "blocks.16.self_attn.v_proj",
+        0.13545578718185425
+      ],
+      "seconds": 327.7743486049585
+    },
+    "seconds": 365.7153370771557
+  },
+  {
+    "short": "qwen1.5b",
+    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+    "tq_dir": "out/qwen1.5b-int4-g32",
+    "gguf": "out/qwen1.5b-int4.gguf",
+    "tq_bytes": 1256505532,
+    "gguf_bytes": 1321319776,
+    "quant": {
+      "n_layers": 196,
+      "fp_gb": 2.620391424,
+      "q_gb": 0.777928704,
+      "compression": 3.3684210526315788,
+      "mean_rel_fro": 0.10025495355378608,
+      "worst_layer": [
+        "blocks.25.self_attn.v_proj",
+        0.13518866896629333
+      ],
+      "seconds": 611.146997863194
+    },
+    "seconds": 665.8323289800901
+  },
+  {
+    "short": "qwen3b",
+    "model": "Qwen/Qwen2.5-3B-Instruct",
+    "tq_dir": "out/qwen3b-int4-g32",
+    "gguf": "out/qwen3b-int4.gguf",
+    "tq_bytes": 2281764719,
+    "gguf_bytes": 2402228960,
+    "quant": {
+      "n_layers": 252,
+      "fp_gb": 5.549064192,
+      "q_gb": 1.647378432,
+      "compression": 3.3684210526315788,
+      "mean_rel_fro": 0.0983129232744908,
+      "worst_layer": [
+        "blocks.3.mlp.down_proj",
+        0.15089866518974304
+      ],
+      "seconds": 1006.3665452350397
+    },
+    "seconds": 1090.9303966129664
+  }
+]

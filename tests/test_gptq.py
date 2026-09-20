@@ -1,6 +1,6 @@
 import torch
 
-from tinyq.quant.core import quantization_error, quantize_tensor
+from tinyq.quant.core import quantize_tensor
 from tinyq.quant.gptq import GPTQConfig, LayerStats, gptq_quantize
 from tinyq.quant.qlinear import QuantLinear
 

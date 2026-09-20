@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import time
 import traceback
 from pathlib import Path
@@ -21,6 +22,32 @@ import yaml
 
 RUNS = Path("runs")
 
+_STARTED_AT = time.strftime("%Y-%m-%dT%H:%M:%S%z")
+
+
+def code_version() -> dict:
+    """Commit y estado del arbol con que CORRE este proceso.
+
+    Se lee una sola vez, al importar, porque lo que importa es el codigo que
+    Python ya tiene en memoria: un `git pull` a mitad del barrido no cambia los
+    modulos ya cargados, y sin este sello las corridas viejas y nuevas se
+    mezclan sin que se note.
+    """
+    def _git(*args: str) -> str:
+        try:
+            return subprocess.check_output(
+                ["git", *args], cwd=Path(__file__).resolve().parent.parent,
+                stderr=subprocess.DEVNULL, text=True,
+            ).strip()
+        except Exception:
+            return ""
+
+    return {
+        "commit": _git("rev-parse", "--short", "HEAD"),
+        "dirty": bool(_git("status", "--porcelain")),
+        "started_at": _STARTED_AT,
+    }
+
 
 def load_model(model_id: str, device: str, dtype: str):
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -28,6 +55,21 @@ def load_model(model_id: str, device: str, dtype: str):
     torch_dtype = {"float32": torch.float32, "float16": torch.float16,
                    "bfloat16": torch.bfloat16}[dtype]
     tok = AutoTokenizer.from_pretrained(model_id, use_fast=True)
+
+    # El contenedor tiene 50 GB de RAM. Cargar el 7B en CPU y despues copiarlo
+    # a la GPU hace pico de el doble de su tamano y el OOM killer lo mata sin
+    # dejar rastro: el log corta justo despues de "Loading weights: 100%".
+    # Con device_map cada shard va directo a la GPU y nunca se junta todo en RAM.
+    if device.startswith("cuda") and torch.cuda.is_available():
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_id, dtype=torch_dtype, low_cpu_mem_usage=True,
+                device_map={"": device},
+            ).eval()
+            return model, tok
+        except Exception as exc:
+            print(f"       device_map no disponible ({type(exc).__name__}); se carga por CPU")
+
     model = AutoModelForCausalLM.from_pretrained(
         model_id, dtype=torch_dtype, low_cpu_mem_usage=True
     ).to(device).eval()
@@ -72,6 +114,7 @@ def run_baseline(model_cfg: dict, d: dict, force: bool = False) -> dict:
         "memory_bytes": model_size_bytes(model),
         "eval_seconds": res.seconds,
         "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"], "dtype": d["dtype"]},
+        "code": code_version(),
     }
     path.parent.mkdir(exist_ok=True)
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
@@ -132,6 +175,7 @@ def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "", force: bool =
             "eval": {"windows": d["eval_windows"], "seq_len": d["eval_seq_len"], "dtype": d["dtype"]},
             "quant_summary": report.summary(),
             "total_seconds": time.perf_counter() - t0,
+            "code": code_version(),
         }
         path.parent.mkdir(exist_ok=True)
         path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

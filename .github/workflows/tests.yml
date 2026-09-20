@@ -6,13 +6,32 @@ on:
   pull_request:
 
 jobs:
-  pytest:
+  estilo:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+      - run: pip install ruff
+      - run: ruff check src tests scripts
+      - run: ruff format --check src tests scripts
+
+  pytest:
+    # TinyQ existe para equipos modestos, asi que Windows no es opcional: es
+    # donde aparecen los problemas de rutas y de codificacion de texto.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.11", "3.12"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
           cache: pip
 
       - name: Instalar dependencias (torch CPU)

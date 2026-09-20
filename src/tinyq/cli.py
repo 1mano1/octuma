@@ -32,6 +32,75 @@ def _load_model(model_id: str, device: str, dtype: str = "float32"):
     return model, tok
 
 
+
+
+def _resolver_device_dtype(device: str, dtype: str, avisar_cpu: bool = True) -> tuple[str, str]:
+    """Elige GPU y precision solos.
+
+    Los valores por defecto de antes (cpu + float32) hacian que el comando mas
+    obvio tardara horas y diera la impresion de que TinyQ es lento.
+    """
+    import torch
+
+    if device == "auto":
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+    if dtype == "auto":
+        # en CPU float16 va lentisimo o ni siquiera esta soportado
+        dtype = "float16" if device.startswith("cuda") else "float32"
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        console.print("[yellow]No hay GPU disponible; se usa CPU[/yellow]")
+        device, dtype = "cpu", "float32"
+    if device == "cpu" and avisar_cpu:
+        console.print(
+            "[yellow]Sin GPU: en CPU esto va a tardar bastante.[/yellow] "
+            "Con un modelo grande conviene una GPU, o prueba --bits 8."
+        )
+    return device, dtype
+
+
+def _avisar_memoria(model: str, device: str) -> None:
+    """Compara lo que pide el modelo con lo que hay, ANTES de descargarlo.
+
+    Reventar por falta de memoria a los diez minutos, despues de bajar 15 GB,
+    es la peor primera impresion posible.
+    """
+    import torch
+
+    try:
+        from huggingface_hub import HfApi
+
+        info = HfApi().model_info(model, files_metadata=True)
+        pesos = sum(
+            s.size or 0 for s in (info.siblings or [])
+            if s.rfilename.endswith((".safetensors", ".bin"))
+        )
+    except Exception:
+        return  # es una carpeta local, o no hay red: no estorbamos
+    if not pesos:
+        return
+
+    # cuantizar necesita el modelo cargado mas las activaciones de calibracion
+    necesario = pesos * 1.4 / 1e9
+    if device.startswith("cuda") and torch.cuda.is_available():
+        libre = torch.cuda.get_device_properties(0).total_memory / 1e9
+        donde = "la GPU"
+    else:
+        try:
+            import shutil  # noqa: F401
+
+            import psutil
+
+            libre = psutil.virtual_memory().available / 1e9
+        except Exception:
+            return
+        donde = "la RAM"
+
+    console.print(f"Este modelo pide ~{necesario:.1f} GB y {donde} tiene {libre:.1f} GB libres")
+    if necesario > libre:
+        console.print(
+            "[yellow]Puede no caber.[/yellow] Opciones: --bits 8, un modelo mas "
+            "chico, o liberar memoria."
+        )
 @app.command()
 def version() -> None:
     """Muestra la version instalada."""
@@ -41,18 +110,18 @@ def version() -> None:
 @app.command()
 def quantize(
     model: str = typer.Argument(..., help="Id de Hugging Face o carpeta local"),
-    out: Path = typer.Option(..., "--out", "-o", help="Carpeta de salida"),
+    out: Path = typer.Option(None, "--out", "-o", help="Carpeta de salida (por defecto se deduce del modelo)"),
     bits: int = typer.Option(4, help="Bits por peso: 2, 3, 4 u 8"),
-    group_size: int = typer.Option(64, "--group", help="Pesos por grupo de escala"),
+    group_size: int = typer.Option(32, "--group", help="Pesos por grupo de escala"),
     method: str = typer.Option("gptq", help="gptq (con calibracion) o rtn (directo)"),
     calib: str = typer.Option("wikitext2", help="Dataset de calibracion o ruta a textos"),
-    samples: int = typer.Option(64, help="Ventanas de calibracion"),
-    seq_len: int = typer.Option(512, "--seqlen", help="Tokens por ventana"),
+    samples: int = typer.Option(128, help="Ventanas de calibracion"),
+    seq_len: int = typer.Option(2048, "--seqlen", help="Tokens por ventana"),
     symmetric: bool = typer.Option(False, help="Cuantizacion simetrica"),
-    awq: bool = typer.Option(False, help="Escalado AWQ antes de cuantizar"),
+    awq: bool = typer.Option(True, help="Escalado AWQ antes de cuantizar"),
     search_scale: bool = typer.Option(True, help="Busca la escala optima por grupo"),
-    device: str = typer.Option("cpu", help="cpu o cuda"),
-    dtype: str = typer.Option("float32", help="Precision de carga"),
+    device: str = typer.Option("auto", help="auto, cpu o cuda"),
+    dtype: str = typer.Option("auto", help="auto, float16, bfloat16 o float32"),
     plan: Path = typer.Option(
         None, "--plan", help="JSON de precision mixta generado por 'tinyq analyze'"
     ),
@@ -61,6 +130,13 @@ def quantize(
     from .calibrate import load_calibration
     from .export.tq import disk_size, save_quantized
     from .quantizer import QuantConfig, quantize_model
+
+    device, dtype = _resolver_device_dtype(device, dtype)
+    if out is None:
+        # sin --out: "Qwen/Qwen2.5-3B-Instruct" -> "qwen2.5-3b-instruct-int4"
+        out = Path(f"{model.rstrip('/').split('/')[-1].lower()}-int{bits}")
+        console.print(f"Carpeta de salida: [bold]{out}[/bold]")
+    _avisar_memoria(model, device)
 
     console.print(f"[bold]Cargando[/bold] {model} ({dtype}, {device})")
     net, tok = _load_model(model, device, dtype)
@@ -117,7 +193,6 @@ def evaluate(
     out: Path = typer.Option(None, "--out", "-o", help="Guarda el reporte en JSON"),
 ) -> None:
     """Mide perplejidad, memoria y velocidad."""
-    import torch
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
     from .evaluate import generation_speed, model_size_bytes, perplexity, wikitext2_ids
@@ -252,6 +327,193 @@ def info(model_dir: Path = typer.Argument(..., help="Carpeta .tq")) -> None:
         table.add_row("Grupo", str(cfg.get("group_size")))
         table.add_row("Metodo", str(cfg.get("method")))
     console.print(table)
+
+
+@app.command()
+def compare(
+    model_dir: Path = typer.Argument(..., help="Carpeta .tq generada por quantize"),
+    original: str = typer.Option(None, help="Modelo sin cuantizar (por defecto, el que dice tinyq.json)"),
+    windows: int = typer.Option(20, help="Ventanas a evaluar"),
+    seq_len: int = typer.Option(2048, "--seqlen"),
+    device: str = typer.Option("auto", help="auto, cpu o cuda"),
+    speed: bool = typer.Option(True, help="Mide tambien tokens por segundo"),
+) -> None:
+    """Compara el modelo cuantizado con el original: ¿quedo bien?"""
+    import torch
+    from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+
+    from .evaluate import generation_speed, model_size_bytes, perplexity, wikitext2_ids
+    from .export.tq import load_quantized
+
+    device, _ = _resolver_device_dtype(device, "auto", avisar_cpu=False)
+    meta = json.loads((model_dir / "tinyq.json").read_text(encoding="utf-8"))
+    original = original or meta.get("source_model")
+    if not original:
+        raise typer.BadParameter(
+            "no se sabe de que modelo salio este .tq: pasa --original"
+        )
+
+    tok = AutoTokenizer.from_pretrained(model_dir, use_fast=True)
+    ids = wikitext2_ids(tok)
+    filas = []
+
+    for etiqueta, cargar in (
+        ("Original", lambda: AutoModelForCausalLM.from_pretrained(
+            original, dtype=torch.float16 if device.startswith("cuda") else torch.float32,
+            low_cpu_mem_usage=True).to(device).eval()),
+        ("Cuantizado", lambda: load_quantized(
+            AutoModelForCausalLM.from_config(AutoConfig.from_pretrained(model_dir)),
+            model_dir, device=device).to(device).eval()),
+    ):
+        console.print(f"[bold]Midiendo[/bold] {etiqueta.lower()}...")
+        net = cargar()
+        res = perplexity(net, ids, seq_len=seq_len, device=device,
+                         dataset="wikitext2", max_windows=windows)
+        mem = model_size_bytes(net)["total"] / 1e9
+        tps = generation_speed(net, ids[:, :32], device=device) if speed else None
+        filas.append((etiqueta, res.perplexity, mem, tps))
+        del net
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+    table = Table(title=f"{original} — {windows} ventanas de {seq_len}")
+    table.add_column("")
+    table.add_column("Perplejidad", justify="right")
+    table.add_column("Memoria", justify="right")
+    if speed:
+        table.add_column("Velocidad", justify="right")
+    for etiqueta, ppl, mem, tps in filas:
+        fila = [etiqueta, f"{ppl:.3f}", f"{mem:.2f} GB"]
+        if speed:
+            fila.append(f"{tps:.1f} tok/s" if tps else "-")
+        table.add_row(*fila)
+    console.print(table)
+
+    base, quant = filas[0], filas[1]
+    perdida = (quant[1] / base[1] - 1) * 100
+    console.print(
+        f"[bold]{base[2] / quant[2]:.2f}x mas chico[/bold] por "
+        f"[bold]{perdida:+.1f}%[/bold] de perplejidad"
+    )
+
+
+PREGUNTAS_PRUEBA = [
+    "Explica en dos frases que es la cuantizacion de modelos.",
+    "¿Cual es la capital de Australia?",
+    "Escribe una funcion de Python que invierta una cadena.",
+    "¿Cuanto es 17 por 24? Muestra el procedimiento.",
+    "Traduce al ingles: 'El gato duerme en la ventana'.",
+    "¿Que es mas pesado, un kilo de plomo o un kilo de plumas?",
+    "Escribe un haiku sobre la lluvia.",
+    "¿En que año llego el hombre a la Luna?",
+    "Explica la diferencia entre una lista y una tupla en Python.",
+    "Termina el refran: 'Mas vale pajaro en mano...'",
+]
+
+
+def _responder(net, tok, pregunta: str, max_new: int, device: str) -> str:
+    import torch
+
+    texto = tok.apply_chat_template(
+        [{"role": "user", "content": pregunta}], tokenize=False, add_generation_prompt=True
+    )
+    entrada = tok(texto, return_tensors="pt").to(device)
+    torch.manual_seed(0)
+    with torch.no_grad():
+        salida = net.generate(**entrada, max_new_tokens=max_new, do_sample=False,
+                              pad_token_id=tok.eos_token_id)
+    nuevos = salida[0][entrada.input_ids.shape[1]:]
+    return tok.decode(nuevos, skip_special_tokens=True).strip()
+
+
+@app.command("try")
+def probar(
+    model_dir: Path = typer.Argument(..., help="Carpeta .tq generada por quantize"),
+    side_by_side: bool = typer.Option(
+        False, "--side-by-side", help="Compara las respuestas con las del original"
+    ),
+    prompt: str = typer.Option(None, "-p", help="Una sola pregunta y salir"),
+    max_new: int = typer.Option(120, help="Tokens por respuesta"),
+    device: str = typer.Option("auto", help="auto, cpu o cuda"),
+    out: Path = typer.Option(None, "--out", "-o", help="Guarda la comparacion en Markdown"),
+) -> None:
+    """Prueba el modelo cuantizado: ¿sigue hablando bien?
+
+    La perplejidad no contesta esto. Ver las respuestas si.
+    """
+    import torch
+    from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+
+    from .export.tq import load_quantized
+
+    device, _ = _resolver_device_dtype(device, "auto", avisar_cpu=False)
+    tok = AutoTokenizer.from_pretrained(model_dir, use_fast=True)
+
+    console.print("[bold]Cargando[/bold] el modelo cuantizado...")
+    net = load_quantized(
+        AutoModelForCausalLM.from_config(AutoConfig.from_pretrained(model_dir)),
+        model_dir, device=device,
+    ).to(device).eval()
+
+    if prompt:
+        console.print(f"\n[bold cyan]{prompt}[/bold cyan]\n")
+        console.print(_responder(net, tok, prompt, max_new, device))
+        return
+
+    if not side_by_side:
+        # chat sencillo en la terminal
+        console.print("Escribe tu pregunta ([dim]Ctrl+C para salir[/dim])\n")
+        while True:
+            try:
+                pregunta = typer.prompt(">")
+            except (KeyboardInterrupt, EOFError):
+                console.print("\nHasta luego")
+                return
+            console.print(f"\n{_responder(net, tok, pregunta, max_new, device)}\n")
+
+    meta = json.loads((model_dir / "tinyq.json").read_text(encoding="utf-8"))
+    origen = meta.get("source_model")
+    if not origen:
+        raise typer.BadParameter("el .tq no dice de que modelo salio")
+
+    respuestas = []
+    for p in PREGUNTAS_PRUEBA:
+        respuestas.append({"pregunta": p, "cuantizado": _responder(net, tok, p, max_new, device)})
+        console.print(f"  [dim]cuantizado:[/dim] {p[:45]}...")
+    del net
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+    console.print("[bold]Cargando[/bold] el original para comparar...")
+    orig = AutoModelForCausalLM.from_pretrained(
+        origen, dtype=torch.float16 if device.startswith("cuda") else torch.float32,
+        low_cpu_mem_usage=True,
+    ).to(device).eval()
+    iguales = 0
+    for fila in respuestas:
+        fila["original"] = _responder(orig, tok, fila["pregunta"], max_new, device)
+        if fila["original"].strip() == fila["cuantizado"].strip():
+            iguales += 1
+        console.print(f"  [dim]original:[/dim] {fila['pregunta'][:45]}...")
+
+    for fila in respuestas:
+        console.print(f"\n[bold cyan]{fila['pregunta']}[/bold cyan]")
+        console.print(f"[dim]original  [/dim] {fila['original'][:300]}")
+        console.print(f"[dim]cuantizado[/dim] {fila['cuantizado'][:300]}")
+    console.print(
+        f"\n[bold]{iguales}/{len(respuestas)}[/bold] respuestas identicas palabra por palabra. "
+        "Que difieran no es malo: lo que importa es que sigan siendo correctas."
+    )
+
+    if out:
+        lineas = [f"# Original vs cuantizado — {origen}", "",
+                  f"Identicas palabra por palabra: **{iguales}/{len(respuestas)}**", ""]
+        for fila in respuestas:
+            lineas += [f"### {fila['pregunta']}", "", "**Original**", "",
+                       "```", fila["original"], "```", "", "**Cuantizado**", "",
+                       "```", fila["cuantizado"], "```", ""]
+        out.write_text("\n".join(lineas), encoding="utf-8")
+        console.print(f"[green]Escrito[/green] -> {out}")
 
 
 if __name__ == "__main__":

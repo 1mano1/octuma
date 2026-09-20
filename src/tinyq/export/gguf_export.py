@@ -72,6 +72,28 @@ def _arch_for(model_type: str) -> str:
     return known[model_type]
 
 
+def _rope_theta(cfg: Any) -> float:
+    """Base de RoPE, la busque donde la busque cada version de transformers.
+
+    A partir de transformers 5 el valor dejo de estar en `cfg.rope_theta` y
+    vive dentro de `cfg.rope_parameters`. Un `getattr` con default se lo tragaba
+    en silencio y escribia 10000 donde Qwen2.5 usa 1000000: el modelo seguia
+    respondiendo frases cortas, pero la perplejidad se duplicaba en ventanas
+    largas. Por eso aqui no hay default silencioso: si no aparece, se avisa.
+    """
+    theta = getattr(cfg, "rope_theta", None)
+    if theta is None:
+        params = getattr(cfg, "rope_parameters", None) or {}
+        if not isinstance(params, dict):
+            params = getattr(params, "__dict__", {}) or {}
+        theta = params.get("rope_theta") or params.get("theta")
+    if theta is None:
+        raise ValueError(
+            "no se encontro rope_theta en la configuracion del modelo. "
+            "Escribir un valor por defecto corrompe la atencion en silencio: "
+            "revisa config.json (en transformers 5 esta en 'rope_parameters')."
+        )
+    return float(theta)
 def _write_metadata(writer, cfg: Any, arch: str, name: str) -> None:
     writer.add_name(name)
     writer.add_context_length(getattr(cfg, "max_position_embeddings", 2048))
@@ -83,12 +105,12 @@ def _write_metadata(writer, cfg: Any, arch: str, name: str) -> None:
     writer.add_layer_norm_rms_eps(getattr(cfg, "rms_norm_eps", 1e-6))
     head_dim = getattr(cfg, "head_dim", cfg.hidden_size // cfg.num_attention_heads)
     writer.add_rope_dimension_count(head_dim)
-    writer.add_rope_freq_base(getattr(cfg, "rope_theta", 10000.0))
+    writer.add_rope_freq_base(_rope_theta(cfg))
     writer.add_file_type(1)  # MOSTLY_F16 como base; los tensores llevan su tipo
     writer.add_quantization_version(2)  # GGML_QNT_VERSION: llama.cpp lo exige
 
 
-def _write_vocab(writer, model_dir: Path, n_vocab: int = 0) -> None:
+def _write_vocab(writer, model_dir: Path, n_vocab: int = 0, arch: str = "") -> None:
     """Escribe el vocabulario BPE leyendo tokenizer.json de Hugging Face."""
     tok_path = model_dir / "tokenizer.json"
     if not tok_path.exists():
@@ -115,7 +137,10 @@ def _write_vocab(writer, model_dir: Path, n_vocab: int = 0) -> None:
         types[idx] = 3 if spec.get("special") else 4  # CONTROL / USER_DEFINED
 
     writer.add_tokenizer_model("gpt2")
-    writer.add_tokenizer_pre("default")
+    # El pre-tokenizador decide como se parte el texto ANTES de buscar tokens.
+    # Con "default" la misma frase produce tokens distintos a los que el modelo
+    # vio al entrenarse: sigue respondiendo, pero la perplejidad se dispara.
+    writer.add_tokenizer_pre(_PRE_POR_ARCH.get(arch, "default"))
     writer.add_token_list(tokens)
     writer.add_token_types(types)
     if merges:
@@ -124,7 +149,7 @@ def _write_vocab(writer, model_dir: Path, n_vocab: int = 0) -> None:
         )
 
     # tokens especiales: sin ellos llama.cpp no sabe cuando parar de generar
-    ids = _special_token_ids(model_dir, vocab)
+    ids = _special_token_ids(model_dir, vocab, {s["content"]: i for i, s in added.items()})
     if ids.get("bos") is not None:
         writer.add_bos_token_id(ids["bos"])
     if ids.get("eos") is not None:
@@ -134,9 +159,17 @@ def _write_vocab(writer, model_dir: Path, n_vocab: int = 0) -> None:
     writer.add_add_bos_token(ids.get("add_bos", False))
 
 
-def _special_token_ids(model_dir: Path, vocab: dict[str, int]) -> dict:
+_PRE_POR_ARCH = {
+    "qwen2": "qwen2",
+    "llama": "llama-bpe",
+    "gemma": "default",
+}
+
+
+def _special_token_ids(model_dir: Path, vocab: dict[str, int], extra: dict[str, int] | None = None) -> dict:
     """Lee bos/eos/pad de la configuracion del tokenizer de Hugging Face."""
     out: dict = {}
+    extra = extra or {}
     cfg_path = model_dir / "tokenizer_config.json"
     if cfg_path.exists():
         cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
@@ -145,8 +178,12 @@ def _special_token_ids(model_dir: Path, vocab: dict[str, int]) -> dict:
             tok = cfg.get(name)
             if isinstance(tok, dict):
                 tok = tok.get("content")
-            if isinstance(tok, str) and tok in vocab:
-                out[key] = vocab[tok]
+            # Los especiales de Qwen (<|im_end|>) no estan en model.vocab sino
+            # en added_tokens: buscarlos solo en vocab los perdia en silencio.
+            if isinstance(tok, str):
+                idx = vocab.get(tok, extra.get(tok))
+                if idx is not None:
+                    out[key] = idx
 
     gen_path = model_dir / "generation_config.json"
     if gen_path.exists():
@@ -187,7 +224,7 @@ def export_gguf(
 
     writer = gguf.GGUFWriter(str(out_file), arch)
     _write_metadata(writer, cfg, arch, name)
-    _write_vocab(writer, model_dir, n_vocab=getattr(cfg, "vocab_size", 0))
+    _write_vocab(writer, model_dir, n_vocab=getattr(cfg, "vocab_size", 0), arch=arch)
 
     arch_enum = {v: k for k, v in gguf.MODEL_ARCH_NAMES.items()}[arch]
     name_map = gguf.TensorNameMap(arch_enum, cfg.num_hidden_layers)

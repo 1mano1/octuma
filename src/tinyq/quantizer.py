@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import gc
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 import torch
 from torch import nn
@@ -59,25 +60,25 @@ class QuantReport:
 
     @property
     def fp_bytes(self) -> int:
-        return sum(l.fp_bytes for l in self.layers)
+        return sum(capa.fp_bytes for capa in self.layers)
 
     @property
     def q_bytes(self) -> int:
-        return sum(l.q_bytes for l in self.layers)
+        return sum(capa.q_bytes for capa in self.layers)
 
     @property
     def compression(self) -> float:
         return self.fp_bytes / max(1, self.q_bytes)
 
     def summary(self) -> dict[str, Any]:
-        worst = max(self.layers, key=lambda l: l.rel_fro) if self.layers else None
+        worst = max(self.layers, key=lambda c: c.rel_fro) if self.layers else None
         return {
             "n_layers": len(self.layers),
             "fp_gb": self.fp_bytes / 1e9,
             "q_gb": self.q_bytes / 1e9,
             "compression": self.compression,
             "mean_rel_fro": (
-                sum(l.rel_fro for l in self.layers) / len(self.layers) if self.layers else 0.0
+                sum(capa.rel_fro for capa in self.layers) / len(self.layers) if self.layers else 0.0
             ),
             "worst_layer": (worst.name, worst.rel_fro) if worst else None,
             "seconds": self.seconds,
@@ -306,7 +307,7 @@ def quantize_model(
         inputs = new_inputs
 
         mean_rel = sum(
-            l.rel_fro for l in report.layers if l.name.startswith(f"blocks.{idx}.")
+            capa.rel_fro for capa in report.layers if capa.name.startswith(f"blocks.{idx}.")
         ) / max(1, len(linears))
         log(f"bloque {idx + 1}/{len(blocks)} listo · error medio {mean_rel:.4f}")
         gc.collect()
