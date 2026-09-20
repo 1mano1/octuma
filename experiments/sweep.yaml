@@ -7,7 +7,7 @@ defaults:
   calib: wikitext2
   calib_samples: 128
   calib_seq_len: 2048
-  eval_windows: 40
+  eval_windows: 20
   eval_seq_len: 2048
   device: cuda
   dtype: float16
