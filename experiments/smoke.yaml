@@ -1,0 +1,43 @@
+# Barrido minimo para validar el corredor en CPU antes de gastar GPU.
+# Todo diminuto: calibracion corta y solo dos ventanas de evaluacion.
+
+defaults:
+  calib: wikitext2
+  # 16 x 512 = 8192 tokens: por encima de las 896 dimensiones del modelo, que
+  # es el minimo para que la Hessiana de GPTQ no salga singular
+  calib_samples: 16
+  calib_seq_len: 512
+  eval_windows: 4
+  eval_seq_len: 512
+  device: cpu
+  dtype: float32
+
+models:
+  - id: Qwen/Qwen2.5-0.5B-Instruct
+    short: qwen0.5b
+
+methods:
+  - name: cal8k-rtn-int4
+    bits: 4
+    group_size: 64
+    method: rtn
+  - name: cal8k-gptq-int4
+    bits: 4
+    group_size: 64
+    method: gptq
+  - name: cal8k-gptq-awq-int4
+    bits: 4
+    group_size: 64
+    method: gptq
+    awq: true
+  - name: cal8k-awq-rtn-int4
+    bits: 4
+    group_size: 64
+    method: rtn
+    awq: true
+
+ablations:
+  only_models: [qwen0.5b]
+  group_size: [128]
+  bits: [8]
+  calib_samples: [4]

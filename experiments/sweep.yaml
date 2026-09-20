@@ -1,0 +1,79 @@
+# Matriz de experimentos de TinyQ.
+# Cada combinacion valida de modelo x metodo se cuantiza, se evalua y se
+# guarda en runs/<id>.json. El corredor salta lo que ya existe, asi que se
+# puede interrumpir y retomar.
+
+defaults:
+  calib: wikitext2
+  calib_samples: 128
+  calib_seq_len: 2048
+  eval_windows: 40
+  eval_seq_len: 2048
+  device: cuda
+  dtype: float16
+
+# Familia Qwen2.5 completa: abierta, sin licencia que aceptar, y cubre de
+# 0.5B a 7B con la misma arquitectura, que es lo ideal para comparar.
+models:
+  - id: Qwen/Qwen2.5-0.5B-Instruct
+    short: qwen0.5b
+  - id: Qwen/Qwen2.5-1.5B-Instruct
+    short: qwen1.5b
+  - id: Qwen/Qwen2.5-3B-Instruct
+    short: qwen3b
+  - id: Qwen/Qwen2.5-7B-Instruct
+    short: qwen7b
+
+# Modelos con licencia restringida: necesitan HF_TOKEN y aceptar terminos en
+# huggingface.co. Se corren aparte con --only llama3-8b
+optional_models:
+  - id: meta-llama/Meta-Llama-3-8B-Instruct
+    short: llama3-8b
+  - id: mistralai/Mistral-7B-Instruct-v0.3
+    short: mistral7b
+
+# Comparacion principal: se corre en todos los modelos
+methods:
+  - name: rtn-int4
+    bits: 4
+    group_size: 64
+    method: rtn
+    search_scale: false
+  - name: rtn-int4-search
+    bits: 4
+    group_size: 64
+    method: rtn
+    search_scale: true
+  - name: gptq-int4
+    bits: 4
+    group_size: 64
+    method: gptq
+    search_scale: true
+  - name: awq-rtn-int4
+    bits: 4
+    group_size: 64
+    method: rtn
+    awq: true
+    search_scale: true
+  - name: gptq-awq-int4
+    bits: 4
+    group_size: 64
+    method: gptq
+    awq: true
+    search_scale: true
+  - name: gptq-int8
+    bits: 8
+    group_size: 64
+    method: gptq
+    search_scale: true
+
+# Ablaciones: solo en los modelos chicos, que es donde se ven las tendencias
+# sin gastar GPU de mas
+# Las ablaciones solo en el modelo mas chico: las tendencias (mas bits mejor,
+# grupos chicos mejor, mas calibracion mejor) se ven igual y cuestan una
+# fraccion de la GPU
+ablations:
+  only_models: [qwen0.5b]
+  group_size: [32, 64, 128, 0]      # 0 = una escala por fila
+  bits: [2, 3, 4, 8]
+  calib_samples: [8, 32, 128, 256]

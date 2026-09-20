@@ -1,0 +1,35 @@
+{
+  "id": "qwen0.5b__smoke-gptq-int4",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "short": "qwen0.5b",
+  "method": "smoke-gptq-int4",
+  "config": {
+    "bits": 4,
+    "group_size": 64,
+    "method": "gptq",
+    "awq": false,
+    "search_scale": true,
+    "calib_samples": 4,
+    "calib_seq_len": 128
+  },
+  "perplexity": 21.30679981419041,
+  "memory_bytes": {
+    "quantized": 195796992,
+    "dense": 544538624,
+    "embeddings": 544538624,
+    "total": 1284874240
+  },
+  "quant_summary": {
+    "n_layers": 168,
+    "fp_gb": 0.71565312,
+    "q_gb": 0.1956864,
+    "compression": 3.657142857142857,
+    "mean_rel_fro": 0.15851003423865354,
+    "worst_layer": [
+      "blocks.3.mlp.gate_proj",
+      0.26897937059402466
+    ],
+    "seconds": 282.8662175000063
+  },
+  "total_seconds": 319.4389222000027
+}

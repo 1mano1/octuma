@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 import torch
 
 from .core import pack_bits, QuantizedTensor
+from .search import search_group_params
 
 
 @dataclass
@@ -21,6 +22,7 @@ class GPTQConfig:
     symmetric: bool = False
     damp_percent: float = 0.01
     block_size: int = 128
+    search_scale: bool = True
 
 
 @dataclass
@@ -56,8 +58,11 @@ def _quantize_column(
 
 
 def _group_params(
-    block: torch.Tensor, bits: int, symmetric: bool
+    block: torch.Tensor, bits: int, symmetric: bool, search: bool = False
 ) -> tuple[torch.Tensor, torch.Tensor]:
+    if search:
+        return search_group_params(block, bits, symmetric)
+
     qmax = (1 << bits) - 1
     if symmetric:
         absmax = block.abs().amax(dim=1, keepdim=True)
@@ -82,7 +87,7 @@ def gptq_quantize(
     group_size = cfg.group_size if cfg.group_size > 0 else in_features
     qmax = (1 << cfg.bits) - 1
 
-    H = H.clone()
+    H = H.clone().to(w.device)
     dead = torch.diag(H) == 0
     H[dead, dead] = 1.0
     w[:, dead] = 0.0
@@ -97,8 +102,9 @@ def gptq_quantize(
 
     Q = torch.zeros_like(w)
     n_groups = in_features // group_size
-    scales = torch.zeros((out_features, n_groups), dtype=torch.float32)
-    zeros = torch.zeros((out_features, n_groups), dtype=torch.float32)
+    # mismo dispositivo que los pesos: si no, falla en GPU
+    scales = torch.zeros((out_features, n_groups), dtype=torch.float32, device=w.device)
+    zeros = torch.zeros((out_features, n_groups), dtype=torch.float32, device=w.device)
     qint = torch.zeros_like(w, dtype=torch.uint8)
     total_err = 0.0
 
@@ -114,7 +120,9 @@ def gptq_quantize(
             if col % group_size == 0:
                 g = col // group_size
                 block = w[:, col : col + group_size]
-                scale, zero = _group_params(block, cfg.bits, cfg.symmetric)
+                scale, zero = _group_params(
+                    block, cfg.bits, cfg.symmetric, search=cfg.search_scale
+                )
                 scales[:, g] = scale.squeeze(1)
                 zeros[:, g] = zero.squeeze(1)
 

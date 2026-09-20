@@ -29,10 +29,12 @@ def _q4_1_blocks(q: torch.Tensor, scales: torch.Tensor, zeros: torch.Tensor) -> 
     """Empaqueta [out, in] en bloques Q4_1: d(f16), m(f16), 16 bytes."""
     out_features, in_features = q.shape
     n_blocks = in_features // QK
-    q = q.reshape(out_features, n_blocks, QK).to(torch.uint8).numpy()
+    q = q.reshape(out_features, n_blocks, QK).to(torch.uint8).cpu().numpy()
 
-    d = scales.float().numpy().astype(np.float16)
-    m = (-zeros.float() * scales.float()).numpy().astype(np.float16)
+    scales = scales.float().cpu()
+    zeros = zeros.float().cpu()
+    d = scales.numpy().astype(np.float16)
+    m = (-zeros * scales).numpy().astype(np.float16)
 
     # llama.cpp guarda el valor j en el nibble bajo y el j+16 en el alto
     low = q[:, :, :16]
@@ -50,10 +52,10 @@ def _q8_0_blocks(w: torch.Tensor) -> np.ndarray:
     """Cuantiza a Q8_0 (simetrico, bloque de 32): d(f16) + 32 int8."""
     out_features, in_features = w.shape
     n_blocks = in_features // QK
-    g = w.float().reshape(out_features, n_blocks, QK)
+    g = w.float().cpu().reshape(out_features, n_blocks, QK)
     d = (g.abs().amax(dim=-1, keepdim=True) / 127.0).clamp(min=1e-8)
-    q = torch.clamp(torch.round(g / d), -127, 127).to(torch.int8).numpy()
-    d16 = d.squeeze(-1).numpy().astype(np.float16)
+    q = torch.clamp(torch.round(g / d), -127, 127).to(torch.int8).cpu().numpy()
+    d16 = d.squeeze(-1).cpu().numpy().astype(np.float16)
 
     blocks = np.empty((out_features, n_blocks, 34), dtype=np.uint8)
     blocks[:, :, 0:2] = d16.view(np.uint8).reshape(out_features, n_blocks, 2)
@@ -176,7 +178,7 @@ def export_gguf(
                 f"{gg}.weight", _q8_0_blocks(t), raw_dtype=gguf.GGMLQuantizationType.Q8_0
             )
         else:
-            writer.add_tensor(f"{gg}.{kind}", t.numpy().astype(np.float32))
+            writer.add_tensor(f"{gg}.{kind}", t.cpu().numpy().astype(np.float32))
         written += 1
 
     writer.write_header_to_file()

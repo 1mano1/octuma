@@ -1,3 +1,6 @@
+.env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.pyc
@@ -5,7 +8,9 @@ __pycache__/
 *.gguf
 *.tq
 out/
-runs/
+# los resultados de experimentos (JSON) si se versionan: son la evidencia
+runs/*.log
+runs/*.error.txt
 .cache/
 .pytest_cache/
 *.egg-info/
