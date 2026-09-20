@@ -294,6 +294,40 @@ Si se vuelven a tocar esos numeros, salen de `runs/COMPARATIVA.md`.
 partirse en un paquete `cli/`. No se hizo para no mezclarlo con trabajo a
 medias.
 
+## Al clonar en otra maquina
+
+```bash
+git clone https://github.com/1mano1/TinyQ.git
+cd TinyQ
+pip install -e ".[hf,gguf,dev]"
+pytest -q          # deben pasar 60
+```
+
+**Los modelos NO estan en el repo.** `.gguf`, `.tq`, `.safetensors` y `out/`
+estan en `.gitignore` a proposito: pesan gigabytes. Un clon recien hecho tiene
+el codigo y los resultados en `runs/*.json`, pero **`out/` viene vacio**.
+
+Para recuperar un modelo hay dos caminos:
+
+```bash
+# 1) bajarlo de Hugging Face (privados: hace falta el token del autor)
+huggingface-cli download Imanol11/qwen3b-int4-TinyQ --local-dir out/qwen3b
+
+# 2) volver a cuantizarlo desde cero (mas lento, pero no depende de nada)
+tinyq quantize Qwen/Qwen2.5-3B-Instruct
+```
+
+Los `.gguf` re-exportados con el arreglo (`out/qwen05b-int4-fix.gguf`,
+`out/qwen3b-int4-fix.gguf`) **existen solo en la maquina donde se generaron y
+no estan subidos a ningun lado**. Los de Hugging Face siguen siendo los
+degradados hasta que se resuban.
+
+## Proyecto hermano
+
+`https://github.com/1mano1/ia-local-android` — la app Android que ejecuta
+estos modelos (nombre provisional). En local: `C:/ProyectosIA_Imanol/Lumen`.
+Ahi solo hay diseño todavia, ningun codigo.
+
 ## Como trabaja el autor
 
 Imanol, de Colima, habla espanol informal. Prefiere explicaciones directas y
