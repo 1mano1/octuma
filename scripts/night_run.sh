@@ -32,7 +32,12 @@ TOKEN="${HF_TOKEN:-}"
 if [ -f /workspace/.hf_token ]; then TOKEN=$(cat /workspace/.hf_token); fi
 if [ -n "$TOKEN" ]; then
   export HF_TOKEN="$TOKEN"
-  USER_HF="${HF_USER:-1mano1}"
+  # el usuario de Hugging Face no tiene por que coincidir con el de GitHub
+  USER_HF="${HF_USER:-}"
+  if [ -z "$USER_HF" ] && [ -f /workspace/.hf_user ]; then
+    USER_HF=$(cat /workspace/.hf_user)
+  fi
+  USER_HF="${USER_HF:-Imanol11}"
   for dir in out/*-int4-g32; do
     [ -d "$dir" ] || continue
     short=$(basename "$dir" | cut -d- -f1)
