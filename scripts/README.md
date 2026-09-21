@@ -14,6 +14,7 @@ CLI (`tinyq quantize`, `tinyq compare`, `tinyq try`).
 | `sanity_chat.py` | Las mismas preguntas al original y al cuantizado, lado a lado. Hoy vive también como `tinyq try --side-by-side`. |
 | `export_artifacts.py` | Genera los modelos finales (`.tq` y `.gguf`) que se publican. |
 | `benchmark.py` | Velocidad de generación. |
+| `make_wikitext_txt.py` | Escribe wikitext-2 test como `.txt` para `llama-perplexity`, armado igual que el evaluador de Python. Sin él, el número de llama.cpp y el de TinyQ no miden el mismo texto. |
 
 ## Diagnóstico
 

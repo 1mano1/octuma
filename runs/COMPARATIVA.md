@@ -47,6 +47,12 @@ La fila de +111% era un GGUF con tres metadatos mal escritos, no un problema de
 cuantizacion. Detalle en `CLAUDE.md`. Se arreglo el 2026-09-20 y el archivo
 re-exportado es el que da 7.492.
 
+Los tres modelos publicados se volvieron a medir con este mismo protocolo en
+`runs/NOTA_gguf_reexport.md`: el 0.5B pasa de 27.484 a 12.710, el 1.5B de
+24.462 a 8.486 y el 3B de 15.453 a 7.512. Esa medicion del 3B reproduce las
+dos filas de esta tabla dentro del 0.3%, en otra maquina y otro build de
+llama.cpp.
+
 ## 3. Calidad de las respuestas
 
 20 preguntas, sin muestreo y con la misma semilla (`runs/sanity__qwen3b.md`):
