@@ -16,7 +16,10 @@ jobs:
           cache: pip
       - run: pip install ruff
       - run: ruff check src tests scripts
-      - run: ruff format --check src tests scripts
+      # `ruff format --check` no esta aqui a proposito: reformatearia 27
+      # archivos de golpe y el estilo del codigo existente es una decision del
+      # autor, no algo que deba imponer la CI. Si algun dia se adopta, va en un
+      # commit aparte y solo de formato.
 
   pytest:
     # TinyQ existe para equipos modestos, asi que Windows no es opcional: es

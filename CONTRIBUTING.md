@@ -23,12 +23,15 @@ En Windows, si `python` te manda a la Microsoft Store, usa `py` en su lugar.
 
 ```bash
 ruff check src tests scripts      # estilo y errores comunes
-ruff format src tests scripts     # formato
 pytest -q                         # pruebas
 ```
 
-Los tres tienen que pasar antes de abrir un PR. La CI corre exactamente eso en
+Los dos tienen que pasar antes de abrir un PR. La CI corre exactamente eso en
 Linux y Windows, con Python 3.10 a 3.12.
+
+`ruff format` existe pero **no se exige**: el codigo actual no esta formateado
+con el y adoptarlo tocaria 27 archivos de una vez. Si se adopta algun dia, sera
+en un commit aparte que solo cambie formato.
 
 ## Cómo está organizado
 
