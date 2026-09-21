@@ -80,24 +80,30 @@ Tres tests de regresion en `tests/test_gguf.py`. **55 tests pasan.**
 El patron comun, otra vez: **un default que tapa el fallo en silencio**. Lo
 mismo que hacia `night_run.sh` al anunciar "todo listo" con el barrido muerto.
 
-### Verificado sobre el modelo publicado
+### Verificado sobre los tres modelos publicados
 
-El `.gguf` del 0.5B que esta en Hugging Face, medido con 10 ventanas de 512:
+Los tres `.gguf` de Hugging Face, cada uno contra su re-exportado, con el
+mismo protocolo: 20 ventanas de 2048 (detalle en `runs/NOTA_gguf_reexport.md`).
 
-| | Perplejidad |
-|---|---|
-| el publicado | 41.85 |
-| re-exportado con los arreglos | **17.73** |
+| Modelo | el publicado | re-exportado | Mejora |
+|---|---|---|---|
+| 0.5B | 27.484 | **12.710** | 2.16x |
+| 1.5B | 24.462 | **8.486** | 2.88x |
+| 3B | 15.453 | **7.512** | 2.06x |
 
-2.4x mejor. El archivo publicado estaba degradado de verdad; no era cosa del
-modelo de prueba. El nuevo esta en `out/qwen05b-int4-fix.gguf`, **sin subir**.
+Los archivos publicados estaban degradados de verdad; no era cosa del modelo de
+prueba. **El bug se comia el beneficio de crecer**: entre el 0.5B y el 1.5B
+publicados habia un 11% de diferencia, y entre los arreglados hay un 33%.
+
+Los tres re-exportados estan en `out/*-int4-fix.gguf`.
 
 ### Pendiente de esto
 
-- Re-exportar los `.gguf` del 1.5B y el 3B y resubir los tres. No hace falta
-  recuantizar ni GPU: las carpetas `.tq` estan en Hugging Face.
-- Rehacer la comparativa del 3B contra Q4_K_M: la vieja (+111%) medía el bug,
-  no la herramienta.
+- ~~Re-exportar los `.gguf` del 1.5B y el 3B~~ **HECHO**: los tres estan
+  re-exportados y verificados (`verify_gguf.py` da 0 en los tres).
+- ~~Rehacer la comparativa del 3B contra Q4_K_M~~ **HECHO**: 7.512 aqui contra
+  7.824 de Q4_K_M, reproduciendo el 7.492 de la otra maquina.
+- **Falta resubir los tres a Hugging Face.** Siguen los degradados arriba.
 
 ## La CLI rediseñada (2026-09-20)
 
@@ -193,9 +199,10 @@ No hay 7B publicado. Los publica el autor cuando decida, no antes.
 
 1. Repetir `awq-rtn-int4` y `gptq-awq-int4` del 7B (ver hallazgo 3).
 2. Comparar contra una implementacion real de GPTQ.
-3. **Arreglar el export a GGUF** (ver arriba). Es lo mas urgente: bloquea a
-   Lumen y los .gguf publicados estan degradados.
-4. Rehacer y resubir los .gguf una vez arreglado.
+3. ~~Arreglar el export a GGUF~~ **HECHO** (ver arriba).
+4. **Resubir los tres .gguf.** Ya estan rehechos y verificados en local; lo que
+   falta es subirlos. Es lo mas urgente: los de Hugging Face estan degradados y
+   bloquean a Lumen.
 5. Rediseñar la CLI y la documentacion segun `docs/PLAN_CLI.md`.
 6. Decidir nombre definitivo del proyecto y de la app antes de abrirlos.
 
@@ -209,6 +216,12 @@ Lo que hay en el PATH es el stub de la Microsoft Store, que responde
 Con `pip install -e . --no-deps` los tests corren en local: **47 pasan, 1 se
 salta**. No hace falta el pod para verificar cambios de codigo. El torch local
 es la version CPU.
+
+**En la PC de la RTX 4060** (2026-09-20) el Python es otro: ahi no existe el
+3.11, hay **3.10.0 y 3.14.2**, y el que tiene todo instalado es el **3.10**
+(`AppData/Local/Programs/Python/Python310/python.exe`), con
+**torch 2.5.1+cu121 y CUDA disponible**. Con `pip install -e ".[hf,gguf,dev]"`
+pasan los **60 tests**.
 
 ## Pendientes y donde correrlos
 
@@ -238,6 +251,14 @@ Los binarios de llama.cpp para Windows se bajan ya compilados de
 `github.com/ggml-org/llama.cpp/releases` (el zip `bin-win-cuda-12.4-x64`, o
 `bin-win-cpu-x64` si no se quiere CUDA). No hace falta compilar nada.
 
+Ya instalados en esta maquina en `C:/llamacpp/bin` (build b11065). Ojo con la
+version de CUDA: el driver **591.86 llega hasta CUDA 13.1**, asi que el zip
+`cuda-13.4` no arranca y hay que quedarse en el `cuda-12.4`. Tambien hace falta
+el zip `cudart-` del mismo build, que trae las DLL del runtime.
+
+El `wikitext2.txt` lo genera `scripts/make_wikitext_txt.py`, que lo arma igual
+que el evaluador de Python. Sin el, el numero de llama.cpp no es comparable.
+
 ### Lo que falta medir
 
 1. ~~Medir el GGUF del 3B arreglado~~ **HECHO**: da **7.492** con 20 ventanas,
@@ -245,9 +266,9 @@ Los binarios de llama.cpp para Windows se bajan ya compilados de
    le gana a llama.cpp**: +2.2% de dano contra +6.7% del formato mas usado
    para correr modelos en local. Es el argumento de por que la app Android usa
    estos modelos y no unos cualquiera.
-2. **Re-exportar el `.gguf` del 1.5B** y resubir los tres a Hugging
-   Face. El del 0.5B ya esta re-exportado en `out/qwen05b-int4-fix.gguf` y el
-   del 3B en `out/qwen3b-int4-fix.gguf`, **ninguno subido todavia**.
+2. ~~Re-exportar el `.gguf` del 1.5B~~ **HECHO**: da **8.486** contra 24.462
+   del publicado. Los tres estan en `out/*-int4-fix.gguf` y verificados, pero
+   **ninguno subido todavia**: en Hugging Face siguen los degradados.
 3. **Tokens por segundo en un telefono real**, cuando Lumen corra. El
    portafolio tenia una columna "Pixel 7 (tok/s)" **inventada** que hubo que
    quitar: ese hueco se llena con mediciones reales del celular del autor, y es
