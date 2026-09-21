@@ -1,0 +1,50 @@
+{
+  "modelo": "Qwen/Qwen2.5-1.5B-Instruct",
+  "slug": "qwen1.5b",
+  "motor": "llama.cpp",
+  "eval": {
+    "dataset": "wikitext2-test",
+    "windows": 20,
+    "seq_len": 2048,
+    "corpus": "out\\wikitext2.txt"
+  },
+  "resultados": [
+    {
+      "etiqueta": "F16 (original)",
+      "gguf": "out\\bench\\qwen1.5b-f16.gguf",
+      "familia": "original",
+      "ppl": 8.3111,
+      "bytes": 3093669024,
+      "dano_pct": 0.0,
+      "compresion": 1.0
+    },
+    {
+      "etiqueta": "TinyQ INT4",
+      "gguf": "out\\qwen15b-int4-fix.gguf",
+      "familia": "tinyq",
+      "ppl": 8.4864,
+      "bytes": 1321319872,
+      "dano_pct": 2.1092274187532345,
+      "compresion": 2.3413475340511645
+    },
+    {
+      "etiqueta": "llama.cpp Q4_K_M",
+      "gguf": "out\\bench\\qwen1.5b-q4_k_m.gguf",
+      "familia": "llama.cpp",
+      "ppl": 8.7047,
+      "bytes": 986048160,
+      "dano_pct": 4.735835208335848,
+      "compresion": 3.13744211438922
+    },
+    {
+      "etiqueta": "llama.cpp Q4_0",
+      "gguf": "out\\bench\\qwen1.5b-q4_0.gguf",
+      "familia": "llama.cpp",
+      "ppl": 9.0051,
+      "bytes": 934954656,
+      "dano_pct": 8.350278543153134,
+      "compresion": 3.3088973932014945
+    }
+  ],
+  "segundos": 178.31252450000102
+}

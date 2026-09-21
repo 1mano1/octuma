@@ -15,6 +15,9 @@ CLI (`tinyq quantize`, `tinyq compare`, `tinyq try`).
 | `export_artifacts.py` | Genera los modelos finales (`.tq` y `.gguf`) que se publican. |
 | `benchmark.py` | Velocidad de generación. |
 | `make_wikitext_txt.py` | Escribe wikitext-2 test como `.txt` para `llama-perplexity`, armado igual que el evaluador de Python. Sin él, el número de llama.cpp y el de TinyQ no miden el mismo texto. |
+| `bench_gguf.py` | La cadena completa por modelo: baja el original, lo convierte a F16, lo cuantiza con llama.cpp (Q4_K_M, Q4_0) y mide las cuatro variantes con `llama-perplexity`. Escribe `runs/gguf__<slug>.json`. |
+| `tabla_gguf.py` | Genera `runs/COMPARATIVA_GGUF.md` desde esos JSON. Todo el documento sale de los datos, incluidas las frases que dicen quién gana. |
+| `grafica_gguf.py` | Una gráfica por modelo más la de conjunto, en claro y oscuro, para el README. |
 
 ## Diagnóstico
 
