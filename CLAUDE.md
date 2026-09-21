@@ -105,6 +105,36 @@ Los tres re-exportados estan en `out/*-int4-fix.gguf`.
   7.824 de Q4_K_M, reproduciendo el 7.492 de la otra maquina.
 - **Falta resubir los tres a Hugging Face.** Siguen los degradados arriba.
 
+## La comparativa completa contra llama.cpp (2026-09-20)
+
+Los tres modelos medidos **dentro de llama.cpp** contra sus propios formatos,
+mismo corpus y mismas ventanas (`runs/COMPARATIVA_GGUF.md`, generado por
+`scripts/tabla_gguf.py`; graficas con `scripts/grafica_gguf.py`):
+
+| Modelo | TinyQ INT4 | Q4_K_M | Q4_0 |
+|---|---|---|---|
+| 0.5B | +3.73% | **+2.63%** | +13.17% |
+| 1.5B | **+2.11%** | +4.74% | +8.35% |
+| 3B | **+2.43%** | +6.21% | +11.02% |
+
+**TinyQ pierde en el 0.5B**, y hay que decirlo: Q4_K_M hace menos daño y ocupa
+menos (0.40 GB contra 0.52). El argumento honesto no es "siempre gana", es que
+**Q4_K_M se degrada al crecer el modelo (2.63 → 4.74 → 6.21) y TinyQ no**
+(3.73 → 2.11 → 2.43). El cruce esta entre 0.5B y 1.5B, y el lado bueno del
+cruce es justo el caso de uso que importa: el modelo mas grande que quepa.
+
+`scripts/bench_gguf.py` hace la cadena completa por modelo (baja el original,
+convierte a F16, cuantiza con llama.cpp y mide las cuatro variantes). Reproduce
+las cuatro filas documentadas del 3B dentro del 0.5%.
+
+### El nombre `tinyq` ya esta tomado en PyPI
+
+`pip install tinyq` instala **otro proyecto sin relacion** (un gestor de colas
+de trabajo, v0.3.0, de otro autor). Por eso el README instala desde GitHub. Es
+un dato para el pendiente del nombre definitivo: `tiny-q` si esta libre.
+
+Tambien: **`huggingface-cli` ya no existe**, el comando es `hf`.
+
 ## La CLI rediseñada (2026-09-20)
 
 Tres comandos de entrada, segun `docs/PLAN_CLI.md`:
@@ -334,7 +364,7 @@ Para recuperar un modelo hay dos caminos:
 
 ```bash
 # 1) bajarlo de Hugging Face (privados: hace falta el token del autor)
-huggingface-cli download Imanol11/qwen3b-int4-TinyQ --local-dir out/qwen3b
+hf download Imanol11/qwen3b-int4-TinyQ --local-dir out/qwen3b   # huggingface-cli ya no existe
 
 # 2) volver a cuantizarlo desde cero (mas lento, pero no depende de nada)
 tinyq quantize Qwen/Qwen2.5-3B-Instruct
