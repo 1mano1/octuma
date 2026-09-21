@@ -37,6 +37,7 @@ local, ignóralos por completo.
 | `night_run.sh` | Encadena barrido, ablaciones, artefactos y publicación sin supervisión. Cada paso revisa su código de salida. |
 | `watchdog.sh` | Apaga el pod al terminar. Reintenta hasta confirmarlo y **no apaga nada** si los modelos no están verificados en Hugging Face. |
 | `upload_hf.py` | Sube un modelo a Hugging Face. Privado salvo que se diga lo contrario. |
+| `publicar_gguf.py` | Reemplaza el `.gguf` de un repo publicado y **genera su ficha desde `runs/gguf__<slug>.json`**, así que la tabla de la ficha nunca se desfasa de lo medido. `--dry-run` escribe la ficha sin subir nada. |
 
 ### Dos cosas que costaron caro
 
