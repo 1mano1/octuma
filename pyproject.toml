@@ -1,5 +1,8 @@
 [project]
-name = "tinyq"
+# El nombre de distribucion es "tiny-q" porque "tinyq" ya esta tomado en PyPI
+# por un gestor de colas sin relacion con esto. El paquete que se importa y el
+# comando siguen siendo "tinyq".
+name = "tiny-q"
 version = "0.1.0"
 description = "Cuantizacion INT4/INT8 de modelos de lenguaje para equipos modestos y telefonos Android"
 readme = "README.md"
