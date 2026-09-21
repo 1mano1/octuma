@@ -8,7 +8,7 @@ perdiendo 2.4% de calidad**, y el archivo resultante corre en llama.cpp, que es
 lo que usa cualquier telefono o laptop sin GPU.
 
 ```bash
-pip install "tinyq[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
+pip install "tiny-q[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
 
 tinyq quantize Qwen/Qwen2.5-3B-Instruct    # cuantiza, sin elegir nada
 tinyq compare qwen2.5-3b-instruct-int4     # ¿quedo bien?
@@ -19,15 +19,15 @@ No hay que decidir metodo, bits ni carpeta: los valores por defecto son la
 configuracion que gana en nuestras propias mediciones, la GPU se detecta sola y
 te avisa **antes de descargar nada** si el modelo no va a caber en tu memoria.
 
-> **Sobre `pip install tinyq`:** ese nombre en PyPI pertenece a otro proyecto
-> sin relacion (un gestor de colas de trabajo). TinyQ se instala desde GitHub,
-> con la linea de arriba.
+> **El paquete se llama `tiny-q`, con guion.** `tinyq` a secas en PyPI es otro
+> proyecto sin relacion (un gestor de colas de trabajo, de otro autor). Lo que
+> se importa y el comando de la terminal si son `tinyq`.
 
 ## Instalacion
 
 ```bash
 # lo normal: cuantizar modelos de Hugging Face y exportar a GGUF
-pip install "tinyq[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
+pip install "tiny-q[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
 
 # solo el motor, si ya traes torch y no vas a exportar
 pip install "git+https://github.com/1mano1/TinyQ.git"
@@ -47,11 +47,18 @@ instalacion de torch con CUDA; en CPU funciona igual, solo mas lento.
 Tres modelos de la familia Qwen2.5 ya cuantizados, cada uno con la carpeta
 `.tq` (PyTorch) y el `.gguf` (llama.cpp / Android):
 
-| Modelo | Tamaño INT4 | Perplejidad | vs original |
-|---|---|---|---|
-| [qwen0.5b-int4-TinyQ](https://huggingface.co/Imanol11/qwen0.5b-int4-TinyQ) | 0.52 GB | 12.710 | +3.73% |
-| [qwen1.5b-int4-TinyQ](https://huggingface.co/Imanol11/qwen1.5b-int4-TinyQ) | 1.32 GB | 8.486 | +2.11% |
-| [qwen3b-int4-TinyQ](https://huggingface.co/Imanol11/qwen3b-int4-TinyQ) | 2.40 GB | 7.512 | +2.43% |
+| Modelo | Tamaño INT4 | Perplejidad | vs original | Licencia del original |
+|---|---|---|---|---|
+| [qwen0.5b-int4-TinyQ](https://huggingface.co/Imanol11/qwen0.5b-int4-TinyQ) | 0.52 GB | 12.710 | +3.73% | Apache 2.0 |
+| [qwen1.5b-int4-TinyQ](https://huggingface.co/Imanol11/qwen1.5b-int4-TinyQ) | 1.32 GB | 8.486 | +2.11% | Apache 2.0 |
+| [qwen3b-int4-TinyQ](https://huggingface.co/Imanol11/qwen3b-int4-TinyQ) | 2.40 GB | 7.512 | +2.43% | **Qwen Research (no comercial)** |
+
+> **El 3B no se puede usar comercialmente.** A diferencia del resto de la
+> familia, [`Qwen2.5-3B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct)
+> no es Apache 2.0 sino [Qwen Research License](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/blob/main/LICENSE):
+> solo investigacion y evaluacion. El modelo cuantizado hereda esa condicion.
+> Si lo que quieres es algo comercial, el 1.5B y el 0.5B son Apache 2.0, y el
+> [7B](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) tambien.
 
 ```bash
 hf download Imanol11/qwen3b-int4-TinyQ --local-dir qwen3b
@@ -308,4 +315,19 @@ defaults son lo que se midio como mejor.
 
 ## Licencia
 
-MIT
+El codigo de TinyQ es **MIT** (ver [LICENSE](LICENSE)).
+
+**Los modelos son otra cosa.** Un modelo cuantizado es una obra derivada: se
+queda con la licencia del original, y la de TinyQ no la afloja. Por eso cada
+repo publicado lleva dentro la licencia de su modelo base:
+
+| Base | Licencia | Uso comercial |
+|---|---|---|
+| Qwen2.5-0.5B / 1.5B / 7B-Instruct | Apache 2.0 | si |
+| Qwen2.5-3B-Instruct | [Qwen Research](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/blob/main/LICENSE) | **no** |
+
+Si cuantizas otro modelo con TinyQ, revisa su licencia antes de publicarlo:
+varias familias populares (Llama, Gemma) traen condiciones propias que viajan
+con los pesos derivados.
+
+Built with Qwen.

@@ -44,8 +44,38 @@ MODELOS = {
 
 GITHUB = "https://github.com/1mano1/TinyQ"
 
+# Exigido por la Qwen RESEARCH LICENSE §3c. Literal, no parafrasear.
+AVISO_QWEN = (
+    "Qwen is licensed under the Qwen RESEARCH LICENSE AGREEMENT, "
+    "Copyright (c) Alibaba Cloud. All Rights Reserved."
+)
 
-def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict) -> str:
+
+def licencia_base(base: str, token: str) -> dict:
+    """La licencia del modelo original, leida del Hub en el momento de publicar.
+
+    No se cablea: **Qwen2.5-3B-Instruct no es Apache 2.0** como los demas, sino
+    la Qwen Research License, que es solo para uso no comercial. Copiarla mal en
+    la ficha es tergiversar la licencia de Alibaba, asi que sale del origen.
+    """
+    from huggingface_hub import HfApi
+
+    card = HfApi(token=token).model_info(base).cardData or {}
+    lic = card.get("license", "")
+    nombre = card.get("license_name")
+    enlace = card.get("license_link") or f"https://huggingface.co/{base}/blob/main/LICENSE"
+    if lic == "apache-2.0":
+        return {"spdx": lic, "nombre": None, "enlace": enlace, "comercial": True}
+    if nombre == "qwen-research":
+        return {"spdx": "other", "nombre": nombre, "enlace": enlace, "comercial": False}
+    # Una licencia que no conocemos: parar antes que adivinar.
+    raise SystemExit(
+        f"{base} declara license={lic!r} license_name={nombre!r}, que este script no "
+        "sabe describir. Revisa las condiciones a mano antes de publicar."
+    )
+
+
+def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict, lic: dict) -> str:
     base = meta.get("source_model", "desconocido")
     cfg = meta.get("config", {})
     grupo = cfg.get("group_size", 32)
@@ -81,9 +111,42 @@ def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict) -> str:
         )
 
     ev = d["eval"]
+
+    campos_lic = [f"license: {lic['spdx']}"]
+    if lic["nombre"]:
+        campos_lic.append(f"license_name: {lic['nombre']}")
+        campos_lic.append(f"license_link: {lic['enlace']}")
+
+    if lic["comercial"]:
+        aviso = ""
+        bloque_lic = (
+            f"Los pesos derivan de [`{base}`](https://huggingface.co/{base}), bajo "
+            f"**Apache 2.0**; la copia del original va en `LICENSE`. El codigo de "
+            f"TinyQ es MIT.\n\nLos archivos de pesos estan **modificados** respecto "
+            f"al original: cuantizados a INT4 con TinyQ."
+        )
+    else:
+        aviso = (
+            f"> ### ⚠️ Solo uso no comercial\n>\n"
+            f"> `{base}` no es Apache 2.0 como otros modelos de la familia: esta bajo "
+            f"la [Qwen Research License]({lic['enlace']}), que permite **unicamente "
+            f"investigacion y evaluacion**. Esa condicion la hereda este modelo "
+            f"cuantizado. Para uso comercial hay que pedirle licencia a Alibaba Cloud.\n\n"
+        )
+        bloque_lic = (
+            f"Los pesos derivan de [`{base}`](https://huggingface.co/{base}), bajo la "
+            f"[Qwen RESEARCH LICENSE AGREEMENT]({lic['enlace']}), **no comercial**. "
+            f"La copia integra del acuerdo va en `LICENSE` y el aviso de atribucion "
+            f"en `NOTICE`, como pide su §3.\n\nLos archivos de pesos estan "
+            f"**modificados** respecto al original: cuantizados a INT4 con TinyQ (§3b).\n\n"
+            f"> {AVISO_QWEN}\n\n"
+            f"El codigo de TinyQ es MIT, pero **eso no afloja las condiciones de los "
+            f"pesos**: son dos licencias distintas sobre dos cosas distintas."
+        )
+
     return f"""---
 base_model: {base}
-license: apache-2.0
+{chr(10).join(campos_lic)}
 library_name: gguf
 pipeline_tag: text-generation
 language:
@@ -99,9 +162,13 @@ tags:
 
 # {corto}
 
+Built with Qwen.
+
 [`{base}`]({f"https://huggingface.co/{base}"}) cuantizado a **INT4** con
 [TinyQ]({GITHUB}): **{f16["bytes"] / 1e9:.2f} GB → {nuestro["bytes"] / 1e9:.2f} GB**
 ({nuestro["compresion"]:.2f}x mas chico) perdiendo **{nuestro["dano_pct"]:.2f}%** de calidad.
+
+{aviso}
 
 Incluye las dos formas de usarlo: `{gguf_nombre}` para llama.cpp y Android, y
 la carpeta `.tq` para PyTorch.
@@ -135,7 +202,7 @@ llama-cli -m {slug}/{gguf_nombre} -p "Hola"
 ### PyTorch
 
 ```bash
-pip install "tinyq[hf] @ git+{GITHUB}.git"
+pip install "tiny-q[hf] @ git+{GITHUB}.git"
 ```
 
 ```python
@@ -177,8 +244,7 @@ bajarlo.
 
 ## Licencia
 
-Los pesos heredan la licencia de [`{base}`](https://huggingface.co/{base}).
-TinyQ es MIT.
+{bloque_lic}
 """
 
 
@@ -195,7 +261,13 @@ def main() -> None:
     if not gguf_local.exists():
         raise SystemExit(f"falta {gguf_local}")
 
-    texto = ficha(args.slug, repo, gguf_nombre, meta, d)
+    token = load_token()
+    base = meta.get("source_model", "")
+    lic = licencia_base(base, token)
+    print(f"licencia de {base}: {lic['nombre'] or lic['spdx']}"
+          f"{'' if lic['comercial'] else '  (NO COMERCIAL)'}")
+
+    texto = ficha(args.slug, repo, gguf_nombre, meta, d, lic)
     destino = Path(f"out/CARD_{args.slug}.md")
     destino.write_text(texto, encoding="utf-8")
     print(f"ficha -> {destino}")
@@ -206,9 +278,9 @@ def main() -> None:
 
     import time
 
-    from huggingface_hub import HfApi
+    from huggingface_hub import HfApi, hf_hub_download
 
-    api = HfApi(token=load_token())
+    api = HfApi(token=token)
 
     def subir(local: str, remoto: str, mensaje: str) -> None:
         """Con reintentos: el Hub corta la conexion de vez en cuando y un fallo
@@ -228,12 +300,37 @@ def main() -> None:
                 time.sleep(espera)
         raise SystemExit(f"no se pudo subir {remoto} a {repo}")
 
-    print(f"subiendo {gguf_local.name} ({gguf_local.stat().st_size / 1e9:.2f} GB) -> {repo}")
-    subir(
-        str(gguf_local),
-        gguf_nombre,
-        "GGUF re-exportado: arregla rope_theta, pre-tokenizador y eos_token_id",
-    )
+    # Idempotente: si el Hub ya tiene este mismo archivo, no repetir gigabytes.
+    en_hub = {
+        s.rfilename: s.size
+        for s in api.model_info(repo, files_metadata=True).siblings
+    }
+    if en_hub.get(gguf_nombre) == gguf_local.stat().st_size:
+        print(f"{gguf_nombre} ya esta arriba con el mismo tamaño, no lo resubo")
+    else:
+        print(f"subiendo {gguf_local.name} ({gguf_local.stat().st_size / 1e9:.2f} GB) -> {repo}")
+        subir(
+            str(gguf_local),
+            gguf_nombre,
+            "GGUF re-exportado: arregla rope_theta, pre-tokenizador y eos_token_id",
+        )
+
+    # La licencia del original viaja con los pesos derivados: Apache 2.0 §4(a) y
+    # Qwen Research §3a piden ambas entregar copia a quien reciba el modelo.
+    origen = hf_hub_download(base, "LICENSE", token=token)
+    subir(origen, "LICENSE", f"Licencia del modelo original ({lic['nombre'] or lic['spdx']})")
+
+    if not lic["comercial"]:
+        aviso = Path(f"out/NOTICE_{args.slug}.txt")
+        aviso.write_text(
+            f"{AVISO_QWEN}\n\n"
+            f"Este repositorio contiene una obra derivada de {base}:\n"
+            f"los pesos fueron modificados (cuantizados a INT4) con TinyQ,\n"
+            f"{GITHUB}\n",
+            encoding="utf-8",
+        )
+        subir(str(aviso), "NOTICE", "Aviso de atribucion que pide la Qwen Research License")
+
     subir(str(destino), "README.md", "Ficha con la calidad medida dentro de llama.cpp")
     print(f"listo: https://huggingface.co/{repo}")
 

@@ -130,13 +130,46 @@ cruce es justo el caso de uso que importa: el modelo mas grande que quepa.
 convierte a F16, cuantiza con llama.cpp y mide las cuatro variantes). Reproduce
 las cuatro filas documentadas del 3B dentro del 0.5%.
 
-### El nombre `tinyq` ya esta tomado en PyPI
+### El nombre del paquete es `tiny-q` (decidido 2026-09-20)
 
 `pip install tinyq` instala **otro proyecto sin relacion** (un gestor de colas
-de trabajo, v0.3.0, de otro autor). Por eso el README instala desde GitHub. Es
-un dato para el pendiente del nombre definitivo: `tiny-q` si esta libre.
+de trabajo, v0.3.0, de mozillazg). `tiny-q` y `tiny_q` si estaban libres, y se
+tomo `tiny-q`: es el `name` de `pyproject.toml`.
+
+**El paquete que se importa y el comando siguen siendo `tinyq`.** Solo cambia
+el nombre de distribucion, que es lo que va despues de `pip install`.
+
+Esto **no reserva el nombre**: nadie lo tiene hasta que se suba a PyPI. Si el
+proyecto se va a abrir, conviene registrarlo antes de anunciarlo.
 
 Tambien: **`huggingface-cli` ya no existe**, el comando es `hf`.
+
+## Licencias: el 3B no es Apache 2.0 (2026-09-20)
+
+**`Qwen2.5-3B-Instruct` esta bajo la Qwen RESEARCH LICENSE**, que define
+"Non-Commercial" como "research or evaluation purposes only". El resto de la
+familia que usamos (0.5B, 1.5B, 7B) si es Apache 2.0. Los tres repos de
+Hugging Face declaraban `apache-2.0`, o sea que el del 3B **tergiversaba la
+licencia de Alibaba**. Corregido.
+
+Un modelo cuantizado es obra derivada: se queda con la licencia del original.
+Que TinyQ sea MIT no afloja nada. Lo que pide la Qwen Research y ya se cumple:
+
+- **§3a** copia del acuerdo para quien reciba los pesos -> `LICENSE` en el repo
+- **§3b** avisar que los archivos estan modificados -> lo dice la ficha
+- **§3c** aviso de atribucion en un `NOTICE` -> subido, texto literal
+- **§4b** "Built with Qwen" visible -> en la ficha y en el README
+
+`publicar_gguf.py` lee la licencia del Hub al publicar y **revienta si
+encuentra una que no sabe describir**, en vez de asumir Apache. Tambien baja el
+`LICENSE` del original y lo sube con los pesos (Apache 2.0 §4(a) pide lo mismo).
+
+**Esto le pega a Lumen**: si la app llega a ser comercial, no puede distribuir
+el 3B. El 1.5B es el modelo mas grande que puede usar sin pedirle permiso a
+Alibaba. Conviene decidirlo antes de construir encima.
+
+wikitext-2 (CC BY-SA 3.0) se usa para calibrar y evaluar, y **no se
+redistribuye**: `make_wikitext_txt.py` lo genera en `out/`, que esta ignorado.
 
 ## La CLI rediseñada (2026-09-20)
 
@@ -220,11 +253,13 @@ pero hay que tocar el motor y reprobarlo en un modelo chico).
 
 ## Modelos publicados
 
-Privados en Hugging Face, cada uno con carpeta `.tq` y `.gguf` (9 archivos):
+Privados en Hugging Face, cada uno con carpeta `.tq`, `.gguf` y el `LICENSE`
+del modelo base:
 
-- `Imanol11/qwen0.5b-int4-TinyQ` (1.02 GB)
-- `Imanol11/qwen1.5b-int4-TinyQ` (2.58 GB)
-- `Imanol11/qwen3b-int4-TinyQ` (4.68 GB)
+- `Imanol11/qwen0.5b-int4-TinyQ` (1.02 GB) — Apache 2.0
+- `Imanol11/qwen1.5b-int4-TinyQ` (2.58 GB) — Apache 2.0
+- `Imanol11/qwen3b-int4-TinyQ` (4.68 GB) — **Qwen Research, no comercial**
+  (lleva ademas `NOTICE`)
 
 No hay 7B publicado. Los publica el autor cuando decida, no antes.
 
@@ -245,7 +280,8 @@ pesos no se deshace.
 4. ~~Resubir los tres .gguf~~ **HECHO** (ver arriba). Lumen ya puede bajar de
    Hugging Face modelos que no estan degradados.
 5. Rediseñar la CLI y la documentacion segun `docs/PLAN_CLI.md`.
-6. Decidir nombre definitivo del proyecto y de la app antes de abrirlos.
+6. Decidir nombre de la app (Lumen es provisional). El del paquete ya se
+   decidio: **`tiny-q`**, pendiente de registrar en PyPI si se abre.
 
 ## Entorno local (Windows)
 
