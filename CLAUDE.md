@@ -103,7 +103,10 @@ Los tres re-exportados estan en `out/*-int4-fix.gguf`.
   re-exportados y verificados (`verify_gguf.py` da 0 en los tres).
 - ~~Rehacer la comparativa del 3B contra Q4_K_M~~ **HECHO**: 7.512 aqui contra
   7.824 de Q4_K_M, reproduciendo el 7.492 de la otra maquina.
-- **Falta resubir los tres a Hugging Face.** Siguen los degradados arriba.
+- ~~Resubir los tres a Hugging Face~~ **HECHO (2026-09-20)**: los tres repos
+  tienen el `.gguf` arreglado, comprobado por tamaño contra el archivo local.
+  La ficha de cada uno la genera `scripts/publicar_gguf.py` desde
+  `runs/gguf__<slug>.json`, asi que la tabla no se puede desfasar a mano.
 
 ## La comparativa completa contra llama.cpp (2026-09-20)
 
@@ -225,14 +228,22 @@ Privados en Hugging Face, cada uno con carpeta `.tq` y `.gguf` (9 archivos):
 
 No hay 7B publicado. Los publica el autor cuando decida, no antes.
 
+Cada repo trae su ficha generada por `scripts/publicar_gguf.py`: tabla de
+calidad medida dentro de llama.cpp, como usarlo con `llama-cli` y con PyTorch,
+y una nota de que el `.gguf` anterior al 2026-09-20 estaba degradado.
+
+**Ojo con la visibilidad:** el repo de GitHub es publico y su README enlaza a
+los tres, pero **los tres siguen privados**, asi que esos enlaces dan 404 para
+cualquiera que no sea el autor. Hacerlos publicos es una decision suya; abrir
+pesos no se deshace.
+
 ## Pendientes
 
 1. Repetir `awq-rtn-int4` y `gptq-awq-int4` del 7B (ver hallazgo 3).
 2. Comparar contra una implementacion real de GPTQ.
 3. ~~Arreglar el export a GGUF~~ **HECHO** (ver arriba).
-4. **Resubir los tres .gguf.** Ya estan rehechos y verificados en local; lo que
-   falta es subirlos. Es lo mas urgente: los de Hugging Face estan degradados y
-   bloquean a Lumen.
+4. ~~Resubir los tres .gguf~~ **HECHO** (ver arriba). Lumen ya puede bajar de
+   Hugging Face modelos que no estan degradados.
 5. Rediseñar la CLI y la documentacion segun `docs/PLAN_CLI.md`.
 6. Decidir nombre definitivo del proyecto y de la app antes de abrirlos.
 
@@ -297,8 +308,8 @@ que el evaluador de Python. Sin el, el numero de llama.cpp no es comparable.
    para correr modelos en local. Es el argumento de por que la app Android usa
    estos modelos y no unos cualquiera.
 2. ~~Re-exportar el `.gguf` del 1.5B~~ **HECHO**: da **8.486** contra 24.462
-   del publicado. Los tres estan en `out/*-int4-fix.gguf` y verificados, pero
-   **ninguno subido todavia**: en Hugging Face siguen los degradados.
+   del publicado. Los tres estan en `out/*-int4-fix.gguf`, verificados y
+   **ya subidos** a Hugging Face.
 3. **Tokens por segundo en un telefono real**, cuando Lumen corra. El
    portafolio tenia una columna "Pixel 7 (tok/s)" **inventada** que hubo que
    quitar: ese hueco se llena con mediciones reales del celular del autor, y es
@@ -370,10 +381,10 @@ hf download Imanol11/qwen3b-int4-TinyQ --local-dir out/qwen3b   # huggingface-cl
 tinyq quantize Qwen/Qwen2.5-3B-Instruct
 ```
 
-Los `.gguf` re-exportados con el arreglo (`out/qwen05b-int4-fix.gguf`,
-`out/qwen3b-int4-fix.gguf`) **existen solo en la maquina donde se generaron y
-no estan subidos a ningun lado**. Los de Hugging Face siguen siendo los
-degradados hasta que se resuban.
+Los `.gguf` de Hugging Face **ya son los arreglados** (resubidos el
+2026-09-20). En esta maquina quedan ademas los `out/*-int4-PUBLICADO.gguf`:
+son copias de los degradados que estaban publicados antes, guardadas solo para
+poder repetir la comparacion antes/despues. No son los buenos.
 
 ## Proyecto hermano
 
