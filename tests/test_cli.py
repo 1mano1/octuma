@@ -59,3 +59,23 @@ def test_existen_los_tres_comandos_de_entrada():
     """quantize, compare y try son los que ve alguien que acaba de instalar."""
     nombres = {c.name or c.callback.__name__ for c in cli.app.registered_commands}
     assert {"quantize", "compare", "try"} <= nombres
+
+
+def test_version_se_puede_pedir_como_bandera():
+    """`--version` es lo que se teclea sin pensar; existia solo `octuma version`.
+
+    Se descubrio probando el paquete recien bajado de PyPI: el comando estaba
+    ahi, pero la bandera universal contestaba "No such option".
+    """
+    from typer.testing import CliRunner
+
+    from octuma import __version__
+
+    r = CliRunner().invoke(cli.app, ["--version"])
+    assert r.exit_code == 0, r.output
+    assert __version__ in r.output
+
+    # el subcomando de antes sigue funcionando: no se rompe a quien ya lo usaba
+    r = CliRunner().invoke(cli.app, ["version"])
+    assert r.exit_code == 0, r.output
+    assert __version__ in r.output

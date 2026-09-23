@@ -18,6 +18,30 @@ app = typer.Typer(
 console = Console()
 
 
+def _mostrar_version(pedida: bool) -> None:
+    if pedida:
+        console.print(f"Octuma {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _principal(
+    version: bool = typer.Option(
+        False,
+        "--version",
+        "-V",
+        callback=_mostrar_version,
+        is_eager=True,
+        help="Muestra la version instalada y sale",
+    ),
+) -> None:
+    """Punto de entrada: solo existe para colgar de el la bandera --version.
+
+    El subcomando `octuma version` hace lo mismo y se queda por compatibilidad,
+    pero lo que la gente teclea sin pensar es `--version`.
+    """
+
+
 def _load_model(model_id: str, device: str, dtype: str = "float32"):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -101,6 +125,8 @@ def _avisar_memoria(model: str, device: str) -> None:
             "[yellow]Puede no caber.[/yellow] Opciones: --bits 8, un modelo mas "
             "chico, o liberar memoria."
         )
+
+
 @app.command()
 def version() -> None:
     """Muestra la version instalada."""

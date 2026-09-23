@@ -1,5 +1,13 @@
 # Cambios
 
+## 0.1.2 — 2026-09-22
+
+- **`octuma --version` funciona.** Existia el subcomando `octuma version`, pero
+  la bandera —que es lo que se teclea sin pensar— contestaba
+  `No such option: --version`. Salio al probar el paquete recien bajado de
+  PyPI en una maquina limpia, no al leer el codigo. `octuma version` se queda
+  como estaba, para no romper a quien ya lo usara.
+
 ## 0.1.1 — 2026-09-22
 
 - La version del paquete vive ahora en un solo sitio, `octuma/__init__.py`.
