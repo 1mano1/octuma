@@ -82,14 +82,64 @@ def _resolver_device_dtype(device: str, dtype: str, avisar_cpu: bool = True) -> 
     return device, dtype
 
 
+def _leer_meta(model_dir: Path) -> dict:
+    """Lee el octuma.json de una carpeta .tq, o explica por que no puede.
+
+    Sin esto, pasar una carpeta que no existe daba un FileNotFoundError crudo
+    en `info` y `compare`, y algo peor en `try` y `export`: transformers toma
+    el nombre por un repo de Hugging Face, va a buscarlo y devuelve un 401 de
+    veinte lineas. El usuario acababa leyendo sobre tokens de autenticacion
+    cuando el problema era que `quantize` no habia llegado a escribir nada.
+    """
+    if not model_dir.exists():
+        raise typer.BadParameter(
+            f"la carpeta '{model_dir}' no existe. Si acabas de cuantizar, "
+            "revisa que 'octuma quantize' terminara: si se corto a la mitad "
+            "no deja nada escrito."
+        )
+    if not (model_dir / "octuma.json").exists():
+        raise typer.BadParameter(
+            f"'{model_dir}' existe pero no tiene octuma.json, asi que no es "
+            "una carpeta cuantizada por Octuma."
+        )
+    return json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
+
+
+def _memoria_libre() -> tuple[float | None, float | None]:
+    """RAM y VRAM libres, en GB. Devuelve None en la que no se pueda medir.
+
+    La VRAM sale de `mem_get_info()[0]`, que es lo que queda de verdad. Antes
+    se leia `total_memory` y se imprimia con la palabra "libres": el aviso
+    siempre sonaba holgado porque no descontaba nada de lo ya ocupado.
+    """
+    import torch
+
+    try:
+        import psutil
+
+        ram = psutil.virtual_memory().available / 1e9
+    except Exception:
+        ram = None
+    vram = None
+    if torch.cuda.is_available():
+        try:
+            vram = torch.cuda.mem_get_info()[0] / 1e9
+        except Exception:
+            vram = None
+    return ram, vram
+
+
 def _avisar_memoria(model: str, device: str) -> None:
     """Compara lo que pide el modelo con lo que hay, ANTES de descargarlo.
 
     Reventar por falta de memoria a los diez minutos, despues de bajar 15 GB,
     es la peor primera impresion posible.
-    """
-    import torch
 
+    Mira las dos memorias aunque se cuantice en GPU. Antes, con CUDA presente,
+    solo miraba la VRAM: imprimia "la GPU tiene 8.6 GB libres" justo antes de
+    morir por falta de RAM, que es donde se acumulan las muestras de AWQ. Un
+    aviso que no mide lo que falla es peor que no avisar, porque da confianza.
+    """
     try:
         from huggingface_hub import HfApi
 
@@ -103,27 +153,35 @@ def _avisar_memoria(model: str, device: str) -> None:
     if not pesos:
         return
 
-    # cuantizar necesita el modelo cargado mas las activaciones de calibracion
+    # el modelo cargado mas las entradas de calibracion, que viven donde corre
     necesario = pesos * 1.4 / 1e9
-    if device.startswith("cuda") and torch.cuda.is_available():
-        libre = torch.cuda.get_device_properties(0).total_memory / 1e9
-        donde = "la GPU"
-    else:
-        try:
-            import shutil  # noqa: F401
+    ram, vram = _memoria_libre()
+    en_gpu = device.startswith("cuda") and vram is not None
 
-            import psutil
+    partes = []
+    if ram is not None:
+        partes.append(f"{ram:.1f} GB de RAM")
+    if vram is not None:
+        partes.append(f"{vram:.1f} GB de VRAM")
+    if not partes:
+        return
+    console.print(
+        f"Este modelo pide ~{necesario:.1f} GB y hay libres: " + " y ".join(partes)
+    )
 
-            libre = psutil.virtual_memory().available / 1e9
-        except Exception:
-            return
-        donde = "la RAM"
-
-    console.print(f"Este modelo pide ~{necesario:.1f} GB y {donde} tiene {libre:.1f} GB libres")
-    if necesario > libre:
+    corto = vram if en_gpu else ram
+    if corto is not None and necesario > corto:
         console.print(
             "[yellow]Puede no caber.[/yellow] Opciones: --bits 8, un modelo mas "
             "chico, o liberar memoria."
+        )
+    # cuantizar con AWQ guarda muestras de activaciones en RAM aunque el modelo
+    # este en la GPU. No depende del tamaño del modelo, asi que se avisa aparte.
+    if ram is not None and ram < 4.0:
+        console.print(
+            f"[yellow]Quedan {ram:.1f} GB de RAM.[/yellow] Cuantizar con AWQ "
+            "necesita RAM aunque el modelo corra en la GPU; si se queda corta, "
+            "usa --no-awq o cierra algo."
         )
 
 
@@ -322,6 +380,7 @@ def export(
     from .export.gguf_export import export_gguf
     from .export.tq import load_quantized
 
+    _leer_meta(model_dir)  # antes de que transformers lo tome por un repo del Hub
     console.print(f"[bold]Cargando[/bold] {model_dir}")
     cfg = AutoConfig.from_pretrained(model_dir)
     net = AutoModelForCausalLM.from_config(cfg)
@@ -336,7 +395,7 @@ def export(
 @app.command()
 def info(model_dir: Path = typer.Argument(..., help="Carpeta .tq")) -> None:
     """Muestra el contenido de un modelo cuantizado."""
-    meta = json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
+    meta = _leer_meta(model_dir)
     layers = meta["layers"]
     bits = {}
     for spec in layers.values():
@@ -372,7 +431,7 @@ def compare(
     from .export.tq import load_quantized
 
     device, _ = _resolver_device_dtype(device, "auto", avisar_cpu=False)
-    meta = json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
+    meta = _leer_meta(model_dir)
     original = original or meta.get("source_model")
     if not original:
         raise typer.BadParameter(
@@ -473,6 +532,7 @@ def probar(
     from .export.tq import load_quantized
 
     device, _ = _resolver_device_dtype(device, "auto", avisar_cpu=False)
+    _leer_meta(model_dir)  # antes de que transformers lo tome por un repo del Hub
     tok = AutoTokenizer.from_pretrained(model_dir, use_fast=True)
 
     console.print("[bold]Cargando[/bold] el modelo cuantizado...")

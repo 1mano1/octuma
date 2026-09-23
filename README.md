@@ -30,21 +30,35 @@ te avisa **antes de descargar nada** si el modelo no va a caber en tu memoria.
 # lo normal: cuantizar modelos de Hugging Face y exportar a GGUF
 pip install "octuma[hf,gguf]"
 
-# solo el motor, si ya traes torch y no vas a exportar
-pip install octuma
-
 # la version en desarrollo, antes de que salga en PyPI
 pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/octuma.git"
 ```
 
-Necesita Python 3.10+ y PyTorch. Para cuantizar con GPU hace falta una
-instalacion de torch con CUDA; en CPU funciona igual, solo mas lento.
+Necesita Python 3.10+ y PyTorch.
 
-| Extra | Para que |
-|---|---|
-| `hf` | Bajar modelos y datasets de Hugging Face (`transformers`, `datasets`) |
-| `gguf` | Exportar a GGUF para llama.cpp y Android |
-| `dev` | `pytest` y `ruff`, para desarrollar |
+**Instala los extras.** `pip install octuma` a secas deja fuera `transformers`,
+y sin el solo funcionan `octuma --version` e `octuma info`: no se puede
+cuantizar, ni comparar, ni exportar. Se llaman opcionales por como los nombra
+pip, no porque se puedan omitir.
+
+| Extra | Para que | Sin el |
+|---|---|---|
+| `hf` | `transformers` y `datasets` | no hay `quantize`, `compare`, `try` ni `export` |
+| `gguf` | Exportar a GGUF para llama.cpp y Android | no hay `export` |
+| `dev` | `pytest` y `ruff`, para desarrollar | — |
+
+### Con GPU
+
+El wheel de PyTorch que hay en PyPI es **solo CPU en Windows**: el de CUDA vive
+en otro indice y hay que pedirlo antes, o `octuma quantize` correra en CPU sin
+decir nada.
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install "octuma[hf,gguf]"     # respeta el torch que ya esta
+```
+
+En CPU funciona igual, solo mas lento.
 
 ## Modelos listos para usar
 
