@@ -6,8 +6,8 @@ o no se entiende, eso ya es un bug y vale la pena abrir un issue.
 ## Poner el proyecto a andar
 
 ```bash
-git clone https://github.com/1mano1/TinyQ
-cd Octuma
+git clone https://github.com/1mano1/octuma
+cd octuma
 python -m venv .venv && source .venv/bin/activate   # en Windows: .venv\Scripts\activate
 pip install -e ".[hf,gguf,dev]"
 pytest -q

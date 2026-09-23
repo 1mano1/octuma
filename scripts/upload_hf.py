@@ -72,7 +72,7 @@ tags:
 
 # {repo.split('/')[-1]}
 
-`{base}` cuantizado a **INT{bits}** con [Octuma](https://github.com/1mano1/TinyQ),
+`{base}` cuantizado a **INT{bits}** con [Octuma](https://github.com/1mano1/octuma),
 usando **{method}** con grupos de {group} pesos.
 
 Calibrado con {meta.get('calibration', 'wikitext-2')}.

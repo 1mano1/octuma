@@ -8,7 +8,7 @@ perdiendo 2.4% de calidad**, y el archivo resultante corre en llama.cpp, que es
 lo que usa cualquier telefono o laptop sin GPU.
 
 ```bash
-pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
+pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/octuma.git"
 
 octuma quantize Qwen/Qwen2.5-3B-Instruct    # cuantiza, sin elegir nada
 octuma compare qwen2.5-3b-instruct-int4     # ¿quedo bien?
@@ -28,10 +28,10 @@ te avisa **antes de descargar nada** si el modelo no va a caber en tu memoria.
 
 ```bash
 # lo normal: cuantizar modelos de Hugging Face y exportar a GGUF
-pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
+pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/octuma.git"
 
 # solo el motor, si ya traes torch y no vas a exportar
-pip install "git+https://github.com/1mano1/TinyQ.git"
+pip install "git+https://github.com/1mano1/octuma.git"
 ```
 
 Necesita Python 3.10+ y PyTorch. Para cuantizar con GPU hace falta una
@@ -314,8 +314,8 @@ Detalle en [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md).
 ## Desarrollo
 
 ```bash
-git clone https://github.com/1mano1/TinyQ.git
-cd Octuma
+git clone https://github.com/1mano1/octuma.git
+cd octuma
 pip install -e ".[hf,gguf,dev]"
 pytest -q          # 60 pruebas, segundos en CPU
 ruff check .
