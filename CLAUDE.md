@@ -149,14 +149,15 @@ mismo. `octuma` estaba libre el 2026-09-22 (PyPI responde 404), asi que ahora
 Esto **no reserva el nombre**: nadie lo tiene hasta que se suba a PyPI. Si el
 proyecto se va a abrir, conviene registrarlo antes de anunciarlo.
 
-**Lo que NO se renombro, a proposito:**
+El repo de GitHub tambien se renombro (`1mano1/TinyQ` -> `1mano1/octuma`).
+**GitHub deja una redireccion 301 desde el nombre viejo**, asi que los clones
+que ya existan siguen funcionando; aun asi, el `remote` de esta copia ya apunta
+al nombre nuevo.
 
-- Los tres repos de Hugging Face (`Imanol11/qwen*-int4-TinyQ`) y el repo de
-  GitHub (`1mano1/TinyQ`). Son direcciones reales que hoy funcionan; cambiarlas
-  es una decision del autor, no del renombrado.
-- El formato **`.tq`** (`model.tq.safetensors`). Vive dentro de los tres
-  modelos ya publicados: renombrarlo los rompe a cambio de nada que el usuario
-  vea. El modulo sigue siendo `src/octuma/export/tq.py`.
+**Lo que NO se renombro, a proposito:** el formato **`.tq`**
+(`model.tq.safetensors`). Vive dentro de los tres modelos ya publicados:
+renombrarlo los rompe a cambio de nada que el usuario vea. El modulo sigue
+siendo `src/octuma/export/tq.py`.
 
 Tambien: **`huggingface-cli` ya no existe**, el comando es `hf`.
 
@@ -413,8 +414,8 @@ medias.
 ## Al clonar en otra maquina
 
 ```bash
-git clone https://github.com/1mano1/TinyQ.git
-cd Octuma
+git clone https://github.com/1mano1/octuma.git
+cd octuma
 pip install -e ".[hf,gguf,dev]"
 pytest -q          # deben pasar 60
 ```

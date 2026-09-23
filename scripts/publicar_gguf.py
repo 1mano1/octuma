@@ -42,7 +42,7 @@ MODELOS = {
     ),
 }
 
-GITHUB = "https://github.com/1mano1/TinyQ"
+GITHUB = "https://github.com/1mano1/octuma"
 
 # Exigido por la Qwen RESEARCH LICENSE §3c. Literal, no parafrasear.
 AVISO_QWEN = (
