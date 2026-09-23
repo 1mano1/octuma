@@ -22,7 +22,7 @@ jobs:
       # commit aparte y solo de formato.
 
   pytest:
-    # TinyQ existe para equipos modestos, asi que Windows no es opcional: es
+    # Octuma existe para equipos modestos, asi que Windows no es opcional: es
     # donde aparecen los problemas de rutas y de codificacion de texto.
     strategy:
       fail-fast: false

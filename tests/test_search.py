@@ -1,12 +1,12 @@
 import torch
 
-from tinyq.quant.core import (
+from octuma.quant.core import (
     dequantize_groupwise,
     quantization_error,
     quantize_groupwise,
     quantize_tensor,
 )
-from tinyq.quant.search import quantize_groupwise_searched, search_group_params
+from octuma.quant.search import quantize_groupwise_searched, search_group_params
 
 
 def _err(w, q, s, z, group):
@@ -61,8 +61,8 @@ def test_quantize_tensor_honors_search_flag():
 
 
 def test_rtn_pipeline_uses_search_when_enabled():
+    from octuma.quantizer import QuantConfig, quantize_model
     from tests.test_pipeline import calib, tiny_llama
-    from tinyq.quantizer import QuantConfig, quantize_model
 
     out = {}
     for flag in (False, True):

@@ -34,7 +34,7 @@ def main() -> None:
 
     ev = datos[0][2]["eval"]
     L: list[str] = []
-    L.append("# TinyQ contra los formatos de llama.cpp")
+    L.append("# Octuma contra los formatos de llama.cpp")
     L.append("")
     L.append(
         f"Generado por `scripts/tabla_gguf.py`. Perplejidad en wikitext-2 test, "
@@ -44,7 +44,7 @@ def main() -> None:
     L.append("")
     L.append(
         "Comparar perplejidades entre motores distintos no significa nada: cada uno "
-        "trocea y promedia a su manera. Por eso el `.gguf` de TinyQ se mide dentro de "
+        "trocea y promedia a su manera. Por eso el `.gguf` de Octuma se mide dentro de "
         "llama.cpp, contra los formatos de llama.cpp, sobre el mismo corpus. Lo que se "
         "compara es **cuanto pierde cada formato respecto al mismo original en F16**."
     )
@@ -53,11 +53,11 @@ def main() -> None:
     # --- tabla de conjunto ---
     L.append("## Todos los modelos")
     L.append("")
-    L.append("| Modelo | TinyQ INT4 | Q4_K_M | Q4_0 |")
+    L.append("| Modelo | Octuma INT4 | Q4_K_M | Q4_0 |")
     L.append("|---|---|---|---|")
     for _, nombre, d in datos:
         celdas = []
-        for etiqueta in ("TinyQ INT4", RIVAL, "llama.cpp Q4_0"):
+        for etiqueta in ("Octuma INT4", RIVAL, "llama.cpp Q4_0"):
             r = fila_de(d, etiqueta)
             if not r:
                 celdas.append("—")
@@ -74,7 +74,7 @@ def main() -> None:
     ganados = []
     perdidos = []
     for _, nombre, d in datos:
-        t, q = fila_de(d, "TinyQ INT4"), fila_de(d, RIVAL)
+        t, q = fila_de(d, "Octuma INT4"), fila_de(d, RIVAL)
         if t and q:
             (ganados if t["dano_pct"] < q["dano_pct"] else perdidos).append((nombre, t, q))
 
@@ -84,7 +84,7 @@ def main() -> None:
         peor = max(ganados, key=lambda g: g[2]["dano_pct"] / g[1]["dano_pct"])
         veces = peor[2]["dano_pct"] / peor[1]["dano_pct"]
         L.append(
-            f"**TinyQ gana en {len(ganados)} de {len(datos)} modelos.** La diferencia mas "
+            f"**Octuma gana en {len(ganados)} de {len(datos)} modelos.** La diferencia mas "
             f"grande esta en {peor[0]}: {peor[1]['dano_pct']:.2f}% contra "
             f"{peor[2]['dano_pct']:.2f}% de Q4_K_M, **{veces:.1f} veces menos dano**."
         )
@@ -95,17 +95,17 @@ def main() -> None:
                 f"**En {nombre} pierde**: {t['dano_pct']:.2f}% contra {q['dano_pct']:.2f}% "
                 f"de Q4_K_M, y ademas ocupa mas ({t['bytes'] / 1e9:.2f} GB contra "
                 f"{q['bytes'] / 1e9:.2f} GB). En los modelos mas chicos no hay razon para "
-                f"preferir TinyQ sobre Q4_K_M."
+                f"preferir Octuma sobre Q4_K_M."
             )
         L.append("")
 
-    serie_t = [(n, fila_de(d, "TinyQ INT4")["dano_pct"]) for _, n, d in datos]
+    serie_t = [(n, fila_de(d, "Octuma INT4")["dano_pct"]) for _, n, d in datos]
     serie_q = [(n, fila_de(d, RIVAL)["dano_pct"]) for _, n, d in datos]
     L.append(
         "**La tendencia importa mas que cualquier fila suelta.** Al crecer el modelo, "
         "Q4_K_M se degrada cada vez mas ("
         + " → ".join(f"{v:.2f}%" for _, v in serie_q)
-        + ") mientras TinyQ se mantiene plano ("
+        + ") mientras Octuma se mantiene plano ("
         + " → ".join(f"{v:.2f}%" for _, v in serie_t)
         + "). El cruce esta entre "
         + f"{serie_t[0][0]} y {serie_t[1][0]}."
@@ -133,7 +133,7 @@ def main() -> None:
         for r in sorted(d["resultados"], key=lambda r: (r["familia"] != "original", r["dano_pct"])):
             dano = "—" if r["familia"] == "original" else f"+{r['dano_pct']:.2f}%"
             comp = "—" if r["familia"] == "original" else f"{r['compresion']:.2f}x"
-            nom = f"**{r['etiqueta']}**" if r["familia"] == "tinyq" else r["etiqueta"]
+            nom = f"**{r['etiqueta']}**" if r["familia"] == "octuma" else r["etiqueta"]
             L.append(
                 f"| {nom} | {r['ppl']:.4f} | {dano} | {r['bytes'] / 1e9:.2f} GB | {comp} |"
             )
@@ -144,7 +144,7 @@ def main() -> None:
     L.append("```bash")
     L.append("python scripts/make_wikitext_txt.py --out out/wikitext2.txt")
     L.append("python scripts/bench_gguf.py Qwen/Qwen2.5-3B-Instruct \\")
-    L.append("    --tinyq out/qwen3b-int4-fix.gguf --slug qwen3b")
+    L.append("    --octuma out/qwen3b-int4-fix.gguf --slug qwen3b")
     L.append("python scripts/tabla_gguf.py && python scripts/grafica_gguf.py")
     L.append("```")
     L.append("")

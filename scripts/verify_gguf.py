@@ -15,8 +15,8 @@ import numpy as np
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM
 
-from tinyq.export.tq import load_quantized
-from tinyq.quant.qlinear import QuantLinear
+from octuma.export.tq import load_quantized
+from octuma.quant.qlinear import QuantLinear
 
 
 def revisar_metadatos(gguf_file: Path, tq_dir: Path) -> list[str]:

@@ -1,12 +1,12 @@
 """Mide un modelo dentro de llama.cpp contra sus propias alternativas.
 
 Baja el modelo original, lo convierte a GGUF F16, lo cuantiza con los formatos
-de llama.cpp y mide todo —incluido el .gguf de TinyQ— con `llama-perplexity`.
+de llama.cpp y mide todo —incluido el .gguf de Octuma— con `llama-perplexity`.
 Es la unica forma de comparar de tu a tu: mismo motor, mismo corpus, mismas
 ventanas.
 
     python scripts/bench_gguf.py Qwen/Qwen2.5-0.5B-Instruct \\
-        --tinyq out/qwen05b-int4-fix.gguf --slug qwen0.5b
+        --octuma out/qwen05b-int4-fix.gguf --slug qwen0.5b
 
 Escribe runs/gguf__<slug>.json. Con --keep-f16 conserva el F16 (6 GB en el 3B)
 para no reconvertirlo en otra corrida.
@@ -56,7 +56,7 @@ def perplejidad(gguf: Path, texto: Path, ctx: int, chunks: int, ngl: int) -> flo
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("modelo", help="repo de Hugging Face del modelo original")
-    ap.add_argument("--tinyq", type=Path, required=True, help=".gguf de TinyQ ya exportado")
+    ap.add_argument("--octuma", type=Path, required=True, help=".gguf de Octuma ya exportado")
     ap.add_argument("--slug", required=True, help="nombre corto para los archivos")
     ap.add_argument("--formatos", default="Q4_K_M,Q4_0", help="formatos de llama.cpp a comparar")
     ap.add_argument("--texto", type=Path, default=Path("out/wikitext2.txt"))
@@ -98,7 +98,7 @@ def main() -> None:
     print("[4/4] midiendo")
     filas = [
         {"etiqueta": "F16 (original)", "gguf": f16, "familia": "original"},
-        {"etiqueta": "TinyQ INT4", "gguf": args.tinyq, "familia": "tinyq"},
+        {"etiqueta": "Octuma INT4", "gguf": args.octuma, "familia": "octuma"},
     ]
     filas += [
         {"etiqueta": f"llama.cpp {f}", "gguf": p, "familia": "llama.cpp"}

@@ -1,11 +1,11 @@
 # Plan: la CLI que no da dolores de cabeza
 
-Objetivo: que alguien instale TinyQ y cuantice su primer modelo **sin tomar una
+Objetivo: que alguien instale Octuma y cuantice su primer modelo **sin tomar una
 sola decision**. Quien quiera afinar, que pueda; quien no, que no tenga que.
 
 ## El problema de hoy
 
-Los valores por defecto de `tinyq quantize` **no son la configuracion ganadora
+Los valores por defecto de `octuma quantize` **no son la configuracion ganadora
 de nuestros propios experimentos**:
 
 | Opcion | Hoy | Lo que gana en el barrido |
@@ -17,7 +17,7 @@ de nuestros propios experimentos**:
 | `samples` x `seq_len` | 64 x 512 | 128 x 2048 |
 
 Quien corra el comando obvio obtiene **peores resultados que los de nuestra
-tabla** y, en CPU con float32, tarda tanto que va a concluir que TinyQ es lento.
+tabla** y, en CPU con float32, tarda tanto que va a concluir que Octuma es lento.
 
 Regla: **lo que esta medido como mejor es lo que debe pasar sin pedirlo.**
 
@@ -26,7 +26,7 @@ Regla: **lo que esta medido como mejor es lo que debe pasar sin pedirlo.**
 ### 1. Cuantizar
 
 ```bash
-tinyq quantize Qwen/Qwen2.5-3B-Instruct
+octuma quantize Qwen/Qwen2.5-3B-Instruct
 ```
 
 - Sin `--out`: se deduce `qwen2.5-3b-instruct-int4/`.
@@ -39,7 +39,7 @@ tinyq quantize Qwen/Qwen2.5-3B-Instruct
 ### 2. Comparar
 
 ```bash
-tinyq compare qwen2.5-3b-instruct-int4
+octuma compare qwen2.5-3b-instruct-int4
 ```
 
 Mide el cuantizado **contra su original** y saca una sola tabla: perplejidad,
@@ -52,8 +52,8 @@ hace hoy `scripts/compare_baselines.py`.
 ### 3. Probar
 
 ```bash
-tinyq try qwen2.5-3b-instruct-int4                 # chat en la terminal
-tinyq try qwen2.5-3b-instruct-int4 --side-by-side  # 20 preguntas, dos columnas
+octuma try qwen2.5-3b-instruct-int4                 # chat en la terminal
+octuma try qwen2.5-3b-instruct-int4 --side-by-side  # 20 preguntas, dos columnas
 ```
 
 Es la respuesta a "¿sigue hablando bien?", que la perplejidad no contesta. El
@@ -64,7 +64,7 @@ existiendo: solo dejan de ser lo primero que ve la gente.
 
 ## La documentacion, en cinco piezas
 
-1. **README** — los primeros 30 segundos: que es, `pip install tinyq`, los tres
+1. **README** — los primeros 30 segundos: que es, `pip install octuma`, los tres
    comandos y **la tabla contra bitsandbytes**. Esa tabla convence: va arriba.
 2. **Guia de inicio** — cuantizar el primer modelo de punta a punta, con las
    salidas reales de la terminal, cuanto tarda y cuanta memoria pide.

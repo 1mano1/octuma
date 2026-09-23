@@ -9,10 +9,10 @@ echo "== GPU =="
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
 
 cd /workspace
-if [ ! -d TinyQ ]; then
-  git clone "${TINYQ_REPO:-https://github.com/imanolr/tinyq.git}" TinyQ
+if [ ! -d Octuma ]; then
+  git clone "${TINYQ_REPO:-https://github.com/imanolr/octuma.git}" Octuma
 fi
-cd TinyQ
+cd Octuma
 
 python -m pip install -q --upgrade pip
 python -m pip install -q -e ".[hf,gguf,dev]" pyyaml

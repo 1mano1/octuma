@@ -13,8 +13,8 @@ from pathlib import Path
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
-from tinyq.export.tq import disk_size, load_quantized
+from octuma.evaluate import model_size_bytes, perplexity, wikitext2_ids
+from octuma.export.tq import disk_size, load_quantized
 
 
 def measure(model, ids, seq_len, windows, device, label):
@@ -57,7 +57,7 @@ def main() -> None:
     q = load_quantized(q, args.quant_dir, device=args.device).to(args.device).eval()
     qt = measure(q, ids, args.seqlen, args.windows, args.device, "INT4")
 
-    meta = json.loads((Path(args.quant_dir) / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((Path(args.quant_dir) / "octuma.json").read_text(encoding="utf-8"))
     payload = {
         "base_model": args.base_model,
         "quant_dir": str(args.quant_dir),
