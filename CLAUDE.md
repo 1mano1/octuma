@@ -146,15 +146,41 @@ que distribuir como `tiny-q` e importar como `tinyq`: dos nombres para lo
 mismo. `octuma` estaba libre el 2026-09-22, asi que ahora **lo que se instala,
 lo que se importa y el comando se llaman igual**.
 
-**El nombre ya esta tomado**: `octuma` 0.1.0 se subio a PyPI ese mismo dia, y
+**El nombre ya esta tomado**: `octuma` se subio a PyPI ese mismo dia y
 `pip install octuma` funciona. Estar libre no era estar reservado; ahora si lo
-esta.
+esta. El historial de versiones esta en `CHANGELOG.md`.
 
-Una version de PyPI **se quema para siempre**: 0.1.0 no se puede volver a subir
-ni borrandola. Lo que viaja dentro del artefacto —la URL del repo en
+Una version de PyPI **se quema para siempre**: no se puede volver a subir ni
+borrandola. Lo que viaja dentro del artefacto —la URL del repo en
 `[project.urls]` y el README, que es el `long_description`— tiene que estar
-bien **antes** de publicar. Por eso el orden fue renombrar GitHub, reconstruir
-y recien entonces subir. Para corregir algo se sube 0.1.1.
+bien **antes** de publicar. La 0.1.0 salio con el README de antes de existir en
+PyPI, asi que su ficha solo ofrece la instalacion desde git; se corrigio
+subiendo la 0.1.1, no se pudo rehacer.
+
+La version vive **solo en `src/octuma/__init__.py`**; `pyproject.toml` la lee de
+ahi con `dynamic = ["version"]`. Estaba escrita en los dos sitios sin nada que
+obligara a que coincidieran.
+
+### Probar el paquete instalado, no el repo
+
+`octuma --version` **no existia**: estaba el subcomando `octuma version` y la
+bandera contestaba `No such option`. No se ve leyendo el codigo —el subcomando
+esta ahi y parece suficiente—, aparecio al instalar desde PyPI en un entorno
+virgen y teclear lo primero que teclea cualquiera. Arreglado en 0.1.2, con test.
+
+El protocolo que lo caza, y que conviene repetir antes de cada publicacion:
+
+```bash
+python -m venv /tmp/v && /tmp/v/Scripts/pip install "octuma[hf,gguf]"
+/tmp/v/Scripts/octuma --version
+```
+
+**El venv tiene que estar limpio**: con `--system-site-packages` pip ve la
+instalacion editable (`__editable__.octuma-*.pth`), se la salta y la prueba no
+prueba nada. Verificado el 2026-09-22 sobre un modelo Qwen2 diminuto creado a
+mano: `quantize` -> `info` -> `export` -> `verify_gguf.py` da 0, todo con el
+paquete bajado de PyPI. De paso quedo claro que **pip 21.2.3 instala sin
+problema** el `Metadata-Version: 2.4` que emite setuptools moderno.
 
 Los repos tambien se renombraron el mismo dia: `1mano1/TinyQ` -> `1mano1/octuma`
 en GitHub, y los tres modelos de Hugging Face a `Imanol11/qwen*-int4-Octuma`.
@@ -219,7 +245,7 @@ Ademas, **avisa de la memoria antes de descargar nada**: "Este modelo pide
 15 GB era la peor primera impresion posible.
 
 `tests/test_cli.py` fija los defaults para que no vuelvan a divergir de lo
-medido. **60 tests pasan.**
+medido. **61 tests pasan.**
 
 ## Velocidad: el cuantizado es 3.4x mas lento
 
@@ -328,7 +354,7 @@ es la version CPU.
 3.11, hay **3.10.0 y 3.14.2**, y el que tiene todo instalado es el **3.10**
 (`AppData/Local/Programs/Python/Python310/python.exe`), con
 **torch 2.5.1+cu121 y CUDA disponible**. Con `pip install -e ".[hf,gguf,dev]"`
-pasan los **60 tests**.
+pasan los **61 tests**.
 
 ## Pendientes y donde correrlos
 
@@ -430,7 +456,7 @@ medias.
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # deben pasar 60
+pytest -q          # deben pasar 61
 ```
 
 **Los modelos NO estan en el repo.** `.gguf`, `.tq`, `.safetensors` y `out/`
