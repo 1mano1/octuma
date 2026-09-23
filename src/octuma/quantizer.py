@@ -202,15 +202,23 @@ def quantize_model(
         }
 
         samples: dict[str, list[torch.Tensor]] = {n: [] for n in linears}
+        # Filas ya guardadas por capa. El recorte tiene que ocurrir AQUI.
+        # Antes se guardaban awq_samples filas de *cada* lote y el torch.cat de
+        # mas abajo se quedaba con las primeras awq_samples: se reservaban 128
+        # lotes para usar uno. En el 0.5B eso es una sola peticion de 2.55 GB
+        # (128 x 1024 x 4864 x 4 bytes, el down_proj) que revienta con
+        # "DefaultCPUAllocator: not enough memory" en cualquier equipo normal.
+        vistas: dict[str, int] = dict.fromkeys(linears, 0)
         handles = []
         for name, lin in linears.items():
             def hook(_mod, args, _out, _name=name):
                 x = args[0]
                 stats[_name].add_batch(x)
-                if cfg.awq:
+                if cfg.awq and vistas[_name] < cfg.awq_samples:
                     flat = x.detach().reshape(-1, x.shape[-1])
-                    keep = min(flat.shape[0], cfg.awq_samples)
+                    keep = min(flat.shape[0], cfg.awq_samples - vistas[_name])
                     samples[_name].append(flat[:keep].float().cpu())
+                    vistas[_name] += keep
 
             handles.append(lin.register_forward_hook(hook, with_kwargs=False))
 
@@ -223,6 +231,8 @@ def quantize_model(
             hf_cfg = getattr(model, "config", None)
             n_heads = getattr(hf_cfg, "num_attention_heads", 1)
             n_kv = getattr(hf_cfg, "num_key_value_heads", n_heads)
+            # el recorte ya lo hizo el hook; el [:awq_samples] se queda como
+            # red de seguridad, no como el sitio donde se decide el tamaño
             inputs_by_layer = {
                 linears[n]: torch.cat(v)[: cfg.awq_samples]
                 for n, v in samples.items()

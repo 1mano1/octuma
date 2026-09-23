@@ -79,3 +79,60 @@ def test_version_se_puede_pedir_como_bandera():
     r = CliRunner().invoke(cli.app, ["version"])
     assert r.exit_code == 0, r.output
     assert __version__ in r.output
+
+
+def test_leer_meta_dice_que_la_carpeta_no_existe(tmp_path):
+    """Sin esto, `info` y `compare` soltaban un FileNotFoundError crudo.
+
+    Y era peor en `try` y `export`: transformers tomaba el nombre por un repo
+    de Hugging Face y devolvia un 401 de veinte lineas hablando de tokens de
+    autenticacion, cuando lo unico que pasaba es que `quantize` se habia
+    cortado a la mitad sin escribir nada.
+    """
+    import pytest
+    import typer
+
+    with pytest.raises(typer.BadParameter) as e:
+        cli._leer_meta(tmp_path / "no-existe")
+    aviso = str(e.value)
+    assert "no existe" in aviso
+    assert "quantize" in aviso, "hay que decirle que revise el paso anterior"
+
+
+def test_leer_meta_distingue_una_carpeta_que_no_es_tq(tmp_path):
+    import pytest
+    import typer
+
+    with pytest.raises(typer.BadParameter) as e:
+        cli._leer_meta(tmp_path)
+    assert "octuma.json" in str(e.value)
+
+
+def test_memoria_libre_usa_la_vram_libre_no_la_total(monkeypatch):
+    """`total_memory` se imprimia con la palabra "libres".
+
+    El aviso decia "la GPU tiene 8.6 GB libres" en una tarjeta de 8.6 GB
+    totales, estuviera como estuviera de ocupada: siempre sonaba holgado.
+    """
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "mem_get_info", lambda *a: (1_000_000_000, 8_000_000_000))
+
+    _, vram = cli._memoria_libre()
+    assert vram == 1.0, "tiene que ser lo libre, no los 8 GB totales"
+
+
+def test_memoria_libre_mira_tambien_la_ram_con_gpu_presente(monkeypatch):
+    """Lo que mato al 0.5B fue la RAM, con la GPU medio vacia.
+
+    Mirar solo la VRAM cuando hay CUDA dejaba el fallo real sin medir.
+    """
+    import torch
+
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "mem_get_info", lambda *a: (8_000_000_000, 8_000_000_000))
+
+    ram, vram = cli._memoria_libre()
+    assert ram is not None and ram > 0
+    assert vram == 8.0

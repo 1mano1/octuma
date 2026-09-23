@@ -1,5 +1,32 @@
 # Cambios
 
+## 0.1.3 — 2026-09-23
+
+- **`octuma quantize` ya no se queda sin memoria cuantizando con AWQ.** El hook
+  que recoge activaciones guardaba `awq_samples` filas de *cada* lote de
+  calibracion y el `torch.cat` posterior se quedaba solo con las primeras
+  `awq_samples`: con los 128 lotes que usa el comando por defecto, eso pedia
+  2.55 GB en una sola reserva para el `down_proj` de un Qwen2.5-0.5B y moria
+  con `DefaultCPUAllocator: not enough memory` en una maquina de 30 GB. Ahora
+  el recorte ocurre al guardar. **El resultado es identico** —los 127 lotes de
+  mas se tiraban enteros—, pero el pico baja de gigabytes a decenas de megas.
+  Esto tambien desbloquea las corridas AWQ del 7B, que se daban por perdidas
+  por falta de RAM.
+- **El aviso de memoria media la memoria equivocada.** Con CUDA presente solo
+  miraba la VRAM, y ademas imprimia `total_memory` con la palabra "libres":
+  anunciaba "la GPU tiene 8.6 GB libres" en una tarjeta de 8.6 GB totales,
+  justo antes de morir por falta de RAM. Ahora informa de las dos memorias,
+  usa la libre de verdad y avisa aparte si la RAM se queda corta.
+- **Pasar una carpeta que no existe se explica.** `info` y `compare` soltaban
+  un `FileNotFoundError` crudo, y `try` y `export` algo peor: transformers
+  tomaba el nombre por un repo de Hugging Face y devolvia un 401 hablando de
+  tokens de autenticacion. Ahora los cuatro dicen que la carpeta no existe y
+  que revise si `quantize` llego a terminar.
+- **README:** se ofrecia `pip install octuma` como "solo el motor". Con esa
+  instalacion no se puede cuantizar: sin `transformers` solo funcionan
+  `--version` e `info`. Documentado tambien que el wheel de PyTorch de PyPI es
+  solo CPU en Windows y que el de CUDA hay que pedirlo a su propio indice.
+
 ## 0.1.2 — 2026-09-22
 
 - **`octuma --version` funciona.** Existia el subcomando `octuma version`, pero
