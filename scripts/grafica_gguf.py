@@ -1,4 +1,4 @@
-"""Graficas de TinyQ contra los formatos de llama.cpp, dentro de llama.cpp.
+"""Graficas de Octuma contra los formatos de llama.cpp, dentro de llama.cpp.
 
 Una figura por modelo (cuanto pierde cada formato frente al original) y una
 figura de conjunto que cruza los tres tamanos. Cada una en claro y oscuro.
@@ -72,7 +72,7 @@ def grafica_modelo(tema: dict, slug: str, titulo: str) -> None:
     fig, ax = _base_figura(tema, 3.4)
     valores = [r["dano_pct"] for r in filas]
     etiquetas = [f"{r['etiqueta']}\n{r['bytes'] / 1e9:.2f} GB" for r in filas]
-    colores = [tema["acento"] if r["familia"] == "tinyq" else tema["neutro"] for r in filas]
+    colores = [tema["acento"] if r["familia"] == "octuma" else tema["neutro"] for r in filas]
 
     y = range(len(filas))
     ax.barh(list(y), valores, color=colores, height=0.6)
@@ -120,7 +120,7 @@ def grafica_por_tamano(tema: dict) -> None:
 
     fig, ax = _base_figura(tema, 3.8)
     x = range(len(datos))
-    estilos = {"TinyQ INT4": (tema["acento"], "o", 2.4, 3), }
+    estilos = {"Octuma INT4": (tema["acento"], "o", 2.4, 3), }
 
     for etiqueta, valores in series.items():
         if len(valores) != len(datos):
@@ -140,11 +140,11 @@ def grafica_por_tamano(tema: dict) -> None:
     ax.set_xlim(-0.25, len(datos) - 0.45)
     ax.set_ylabel("Calidad perdida (%)", color=tema["texto2"], fontsize=10)
 
-    ax.set_title("Al crecer el modelo, TinyQ aguanta y los formatos estandar no",
+    ax.set_title("Al crecer el modelo, Octuma aguanta y los formatos estandar no",
                  color=tema["texto"], fontsize=13, fontweight="bold", loc="left", pad=16)
     ax.text(0, -0.22,
             "Perplejidad en wikitext-2 dentro de llama.cpp, 20 ventanas de 2048 tokens.\n"
-            "En el 0.5B, Q4_K_M pierde menos que TinyQ: el cruce esta entre 0.5B y 1.5B.",
+            "En el 0.5B, Q4_K_M pierde menos que Octuma: el cruce esta entre 0.5B y 1.5B.",
             transform=ax.transAxes, color=tema["texto2"], fontsize=8.5,
             va="top", linespacing=1.5)
 

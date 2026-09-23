@@ -1,7 +1,7 @@
-# CLAUDE.md — TinyQ
+# CLAUDE.md — Octuma
 
 Notas para retomar el proyecto sin tener que reconstruir el contexto.
-Ultima actualizacion: 2026-09-20.
+Ultima actualizacion: 2026-09-22.
 
 ## Que es
 
@@ -9,9 +9,13 @@ Libreria de Python que cuantiza modelos de lenguaje a 4 y 8 bits para que
 corran en equipos modestos. Cuatro pasos: calibrar, cuantizar, evaluar,
 exportar (`.tq` para PyTorch y GGUF para llama.cpp y Android).
 
-Proyecto hermano: **Lumen** (`C:/ProyectosIA_Imanol/Lumen/ALCANCE.md`), la app
-Android que corre estos modelos en el telefono. TinyQ comprime, Lumen ejecuta.
-El nombre "Lumen" es provisional y esta muy ocupado (telecom, Unreal Engine).
+Proyecto hermano: la **app Android Octuma** (`C:/ia-local-android`), que corre
+estos modelos en el telefono. La libreria comprime, la app ejecuta.
+
+**Los dos se llaman igual a proposito** (decidido el 2026-09-22). Antes la
+libreria era "TinyQ" y la app "Lumen", los dos nombres provisionales y ocupados
+por terceros. Un solo nombre para las dos mitades le ahorra al usuario tener
+que aprender que una cosa produce lo que la otra consume.
 
 ## Estado: que esta medido y que no
 
@@ -33,17 +37,17 @@ INT4 comprime x3.66.
 
 ### Comparacion contra terceros (lo que faltaba)
 
-Todo lo anterior era TinyQ contra si misma. En Qwen 3B, misma prueba:
+Todo lo anterior era Octuma contra si misma. En Qwen 3B, misma prueba:
 
 | Herramienta | Perplejidad | Memoria | Perdida vs FP16 |
 |---|---|---|---|
 | FP16 | 8.347 | 6.79 GB | — |
-| **TinyQ GPTQ+AWQ** | **8.549** | 2.76 GB | **+2.4%** |
-| TinyQ GPTQ | 8.578 | 2.76 GB | +2.8% |
+| **Octuma GPTQ+AWQ** | **8.549** | 2.76 GB | **+2.4%** |
+| Octuma GPTQ | 8.578 | 2.76 GB | +2.8% |
 | bitsandbytes NF4 | 8.906 | 2.63 GB | +6.7% |
 | bitsandbytes FP4 | 13.343 | 2.63 GB | +59.9% |
 
-TinyQ hace **menos de la mitad de dano** que bitsandbytes NF4, que es el
+Octuma hace **menos de la mitad de dano** que bitsandbytes NF4, que es el
 cuantizador por defecto de Hugging Face y el de QLoRA. Script:
 `scripts/compare_baselines.py`.
 
@@ -114,15 +118,15 @@ Los tres modelos medidos **dentro de llama.cpp** contra sus propios formatos,
 mismo corpus y mismas ventanas (`runs/COMPARATIVA_GGUF.md`, generado por
 `scripts/tabla_gguf.py`; graficas con `scripts/grafica_gguf.py`):
 
-| Modelo | TinyQ INT4 | Q4_K_M | Q4_0 |
+| Modelo | Octuma INT4 | Q4_K_M | Q4_0 |
 |---|---|---|---|
 | 0.5B | +3.73% | **+2.63%** | +13.17% |
 | 1.5B | **+2.11%** | +4.74% | +8.35% |
 | 3B | **+2.43%** | +6.21% | +11.02% |
 
-**TinyQ pierde en el 0.5B**, y hay que decirlo: Q4_K_M hace menos daño y ocupa
+**Octuma pierde en el 0.5B**, y hay que decirlo: Q4_K_M hace menos daño y ocupa
 menos (0.40 GB contra 0.52). El argumento honesto no es "siempre gana", es que
-**Q4_K_M se degrada al crecer el modelo (2.63 → 4.74 → 6.21) y TinyQ no**
+**Q4_K_M se degrada al crecer el modelo (2.63 → 4.74 → 6.21) y Octuma no**
 (3.73 → 2.11 → 2.43). El cruce esta entre 0.5B y 1.5B, y el lado bueno del
 cruce es justo el caso de uso que importa: el modelo mas grande que quepa.
 
@@ -130,17 +134,30 @@ cruce es justo el caso de uso que importa: el modelo mas grande que quepa.
 convierte a F16, cuantiza con llama.cpp y mide las cuatro variantes). Reproduce
 las cuatro filas documentadas del 3B dentro del 0.5%.
 
-### El nombre del paquete es `tiny-q` (decidido 2026-09-20)
+### El proyecto se llama `octuma` (renombrado 2026-09-22)
 
-`pip install tinyq` instala **otro proyecto sin relacion** (un gestor de colas
-de trabajo, v0.3.0, de mozillazg). `tiny-q` y `tiny_q` si estaban libres, y se
-tomo `tiny-q`: es el `name` de `pyproject.toml`.
+Se llamaba **TinyQ**. El nombre cambio para que la libreria y la app Android
+sean la misma marca: quien ve "Octuma" en el telefono encuentra "Octuma" en
+PyPI, y no tiene que aprender que una cosa produce lo que la otra consume.
 
-**El paquete que se importa y el comando siguen siendo `tinyq`.** Solo cambia
-el nombre de distribucion, que es lo que va despues de `pip install`.
+De paso desaparecio una costura fea. `tinyq` en PyPI **es otro proyecto sin
+relacion** (un gestor de colas de trabajo, v0.3.0, de mozillazg), asi que habia
+que distribuir como `tiny-q` e importar como `tinyq`: dos nombres para lo
+mismo. `octuma` estaba libre el 2026-09-22 (PyPI responde 404), asi que ahora
+**lo que se instala, lo que se importa y el comando se llaman igual**.
 
 Esto **no reserva el nombre**: nadie lo tiene hasta que se suba a PyPI. Si el
 proyecto se va a abrir, conviene registrarlo antes de anunciarlo.
+
+El repo de GitHub tambien se renombro (`1mano1/TinyQ` -> `1mano1/octuma`).
+**GitHub deja una redireccion 301 desde el nombre viejo**, asi que los clones
+que ya existan siguen funcionando; aun asi, el `remote` de esta copia ya apunta
+al nombre nuevo.
+
+**Lo que NO se renombro, a proposito:** el formato **`.tq`**
+(`model.tq.safetensors`). Vive dentro de los tres modelos ya publicados:
+renombrarlo los rompe a cambio de nada que el usuario vea. El modulo sigue
+siendo `src/octuma/export/tq.py`.
 
 Tambien: **`huggingface-cli` ya no existe**, el comando es `hf`.
 
@@ -153,7 +170,7 @@ Hugging Face declaraban `apache-2.0`, o sea que el del 3B **tergiversaba la
 licencia de Alibaba**. Corregido.
 
 Un modelo cuantizado es obra derivada: se queda con la licencia del original.
-Que TinyQ sea MIT no afloja nada. Lo que pide la Qwen Research y ya se cumple:
+Que Octuma sea MIT no afloja nada. Lo que pide la Qwen Research y ya se cumple:
 
 - **§3a** copia del acuerdo para quien reciba los pesos -> `LICENSE` en el repo
 - **§3b** avisar que los archivos estan modificados -> lo dice la ficha
@@ -164,7 +181,7 @@ Que TinyQ sea MIT no afloja nada. Lo que pide la Qwen Research y ya se cumple:
 encuentra una que no sabe describir**, en vez de asumir Apache. Tambien baja el
 `LICENSE` del original y lo sube con los pesos (Apache 2.0 §4(a) pide lo mismo).
 
-**Esto le pega a Lumen**: si la app llega a ser comercial, no puede distribuir
+**Esto le pega a la app**: si Octuma para Android llega a ser comercial, no puede distribuir
 el 3B. El 1.5B es el modelo mas grande que puede usar sin pedirle permiso a
 Alibaba. Conviene decidirlo antes de construir encima.
 
@@ -175,13 +192,13 @@ redistribuye**: `make_wikitext_txt.py` lo genera en `out/`, que esta ignorado.
 
 Tres comandos de entrada, segun `docs/PLAN_CLI.md`:
 
-- `tinyq quantize <modelo>` — sin `--out` (se deduce), sin elegir metodo
+- `octuma quantize <modelo>` — sin `--out` (se deduce), sin elegir metodo
   (GPTQ+AWQ, grupos de 32, 128x2048: **la configuracion que gana el barrido**),
   con `--device auto` y `--dtype auto`. Antes venia con AWQ apagado y 64x512,
   asi que el comando obvio daba peores resultados que la tabla del README.
-- `tinyq compare <carpeta>` — cuantizado contra original en una sola tabla, y
+- `octuma compare <carpeta>` — cuantizado contra original en una sola tabla, y
   la linea que resume: "1.94x mas chico por +5.9% de perplejidad".
-- `tinyq try <carpeta>` — chat en la terminal, `-p` para una sola pregunta, y
+- `octuma try <carpeta>` — chat en la terminal, `-p` para una sola pregunta, y
   `--side-by-side` para las 10 preguntas contra el original.
 
 Ademas, **avisa de la memoria antes de descargar nada**: "Este modelo pide
@@ -277,11 +294,11 @@ pesos no se deshace.
 1. Repetir `awq-rtn-int4` y `gptq-awq-int4` del 7B (ver hallazgo 3).
 2. Comparar contra una implementacion real de GPTQ.
 3. ~~Arreglar el export a GGUF~~ **HECHO** (ver arriba).
-4. ~~Resubir los tres .gguf~~ **HECHO** (ver arriba). Lumen ya puede bajar de
+4. ~~Resubir los tres .gguf~~ **HECHO** (ver arriba). La app ya puede bajar de
    Hugging Face modelos que no estan degradados.
 5. Rediseñar la CLI y la documentacion segun `docs/PLAN_CLI.md`.
-6. Decidir nombre de la app (Lumen es provisional). El del paquete ya se
-   decidio: **`tiny-q`**, pendiente de registrar en PyPI si se abre.
+6. ~~Decidir nombre de la app~~ **HECHO (2026-09-22)**: se llama **Octuma**,
+   igual que esta libreria. Falta registrar `octuma` en PyPI si se abre.
 
 ## Entorno local (Windows)
 
@@ -320,7 +337,7 @@ conviene correr donde:
 llama-perplexity -m modelo.gguf -f wikitext2.txt -c 2048 --chunks 20 -ngl 99
 
 # re-exportar y verificar (no necesita GPU)
-tinyq export <carpeta-tq> --out modelo-int4.gguf
+octuma export <carpeta-tq> --out modelo-int4.gguf
 python scripts/verify_gguf.py <carpeta-tq> modelo-int4.gguf
 ```
 
@@ -339,14 +356,14 @@ que el evaluador de Python. Sin el, el numero de llama.cpp no es comparable.
 ### Lo que falta medir
 
 1. ~~Medir el GGUF del 3B arreglado~~ **HECHO**: da **7.492** con 20 ventanas,
-   contra 7.824 de Q4_K_M y 8.163 de Q4_0 (su F16 es 7.330). **TinyQ tambien
+   contra 7.824 de Q4_K_M y 8.163 de Q4_0 (su F16 es 7.330). **Octuma tambien
    le gana a llama.cpp**: +2.2% de dano contra +6.7% del formato mas usado
    para correr modelos en local. Es el argumento de por que la app Android usa
    estos modelos y no unos cualquiera.
 2. ~~Re-exportar el `.gguf` del 1.5B~~ **HECHO**: da **8.486** contra 24.462
    del publicado. Los tres estan en `out/*-int4-fix.gguf`, verificados y
    **ya subidos** a Hugging Face.
-3. **Tokens por segundo en un telefono real**, cuando Lumen corra. El
+3. **Tokens por segundo en un telefono real**, cuando la app corra. El
    portafolio tenia una columna "Pixel 7 (tok/s)" **inventada** que hubo que
    quitar: ese hueco se llena con mediciones reales del celular del autor, y es
    un dato que casi nadie publica.
@@ -354,7 +371,7 @@ que el evaluador de Python. Sin el, el numero de llama.cpp no es comparable.
 ## El portafolio de Figma (actualizado 2026-09-20)
 
 Archivo `nc1HVKdJK4VZsoAyxsOyuz`, pagina **Portafolio V3 — Desktop**, frame
-`tinyq — Desktop` (95:5999).
+`octuma — Desktop` (95:5999).
 
 **Todos los benchmarks que tenia eran inventados.** Hablaban de Llama-3 8B,
 Mistral 7B y Phi-3 — modelos que nunca se midieron — y la nota al pie decia
@@ -365,7 +382,7 @@ de `runs/`; la columna "Pixel 7 (tok/s)" se cambio por el metodo; "GGUF · ONNX
 · TFLite" paso a "GGUF · .tq" (ONNX y TFLite no existen en el codigo); la
 version "v0.3.0" a 0.1.0; el chip "16 GB → 4.3 GB · 98.6% precision" a los
 datos reales del 7B; "Star 1.2k" quitado; y el bloque de codigo animado (13
-variantes) usaba `from tinyq import Quantizer`, una **API que no existe**, y
+variantes) usaba `from octuma import Quantizer`, una **API que no existe**, y
 ahora usa la real.
 
 Si se vuelven a tocar esos numeros, salen de `runs/COMPARATIVA.md`.
@@ -397,8 +414,8 @@ medias.
 ## Al clonar en otra maquina
 
 ```bash
-git clone https://github.com/1mano1/TinyQ.git
-cd TinyQ
+git clone https://github.com/1mano1/octuma.git
+cd octuma
 pip install -e ".[hf,gguf,dev]"
 pytest -q          # deben pasar 60
 ```
@@ -414,7 +431,7 @@ Para recuperar un modelo hay dos caminos:
 hf download Imanol11/qwen3b-int4-TinyQ --local-dir out/qwen3b   # huggingface-cli ya no existe
 
 # 2) volver a cuantizarlo desde cero (mas lento, pero no depende de nada)
-tinyq quantize Qwen/Qwen2.5-3B-Instruct
+octuma quantize Qwen/Qwen2.5-3B-Instruct
 ```
 
 Los `.gguf` de Hugging Face **ya son los arreglados** (resubidos el
@@ -425,7 +442,7 @@ poder repetir la comparacion antes/despues. No son los buenos.
 ## Proyecto hermano
 
 `https://github.com/1mano1/ia-local-android` — la app Android que ejecuta
-estos modelos (nombre provisional). En local: `C:/ProyectosIA_Imanol/Lumen`.
+estos modelos, **tambien llamada Octuma**. En local: `C:/ia-local-android`.
 Ahi solo hay diseño todavia, ningun codigo.
 
 ## Como trabaja el autor

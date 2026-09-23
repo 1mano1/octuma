@@ -1,6 +1,6 @@
 import torch
 
-from tinyq.quantizer import QuantConfig, quantize_model
+from octuma.quantizer import QuantConfig, quantize_model
 
 from .test_pipeline import VOCAB, calib, tiny_llama
 

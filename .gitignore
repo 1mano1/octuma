@@ -14,3 +14,5 @@ runs/*.error.txt
 .cache/
 .pytest_cache/
 *.egg-info/
+# los artefactos de `python -m build`: se regeneran, no se versionan
+dist/

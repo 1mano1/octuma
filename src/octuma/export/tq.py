@@ -81,14 +81,14 @@ def save_quantized(
         "model_type": getattr(getattr(model, "config", None), "model_type", "unknown"),
         **(extra or {}),
     }
-    (out / "tinyq.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    (out / "octuma.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return out
 
 
 def load_quantized(model: nn.Module, in_dir: str | Path, device: str = "cpu") -> nn.Module:
     """Reconstruye un modelo ya cuantizado sobre un esqueleto de HF."""
     path = Path(in_dir)
-    meta = json.loads((path / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((path / "octuma.json").read_text(encoding="utf-8"))
     tensors = load_file(str(path / "model.tq.safetensors"), device=device)
 
     for name, spec in meta["layers"].items():

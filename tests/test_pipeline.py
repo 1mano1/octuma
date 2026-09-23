@@ -1,10 +1,10 @@
 import torch
 
-from tinyq.calibrate import CalibrationSet
-from tinyq.evaluate import model_size_bytes, perplexity
-from tinyq.export.tq import load_quantized, save_quantized
-from tinyq.quant.qlinear import QuantLinear
-from tinyq.quantizer import QuantConfig, find_blocks, quantize_model
+from octuma.calibrate import CalibrationSet
+from octuma.evaluate import model_size_bytes, perplexity
+from octuma.export.tq import load_quantized, save_quantized
+from octuma.quant.qlinear import QuantLinear
+from octuma.quantizer import QuantConfig, find_blocks, quantize_model
 
 VOCAB = 128
 
@@ -97,7 +97,7 @@ def test_fp16_dense_shrinks_file_without_breaking_outputs(tmp_path):
 
     save_quantized(model, tmp_path / "fp32", fp16_dense=False)
     save_quantized(model, tmp_path / "fp16", fp16_dense=True)
-    from tinyq.export.tq import disk_size
+    from octuma.export.tq import disk_size
 
     assert disk_size(tmp_path / "fp16") < disk_size(tmp_path / "fp32")
 

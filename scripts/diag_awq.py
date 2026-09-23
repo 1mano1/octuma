@@ -16,10 +16,10 @@ import argparse
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from tinyq.calibrate import load_calibration
-from tinyq.quant.awq import llama_like_groups, search_scales
-from tinyq.quant.core import quantize_tensor
-from tinyq.quantizer import capture_block_inputs, find_blocks, named_linears
+from octuma.calibrate import load_calibration
+from octuma.quant.awq import llama_like_groups, search_scales
+from octuma.quant.core import quantize_tensor
+from octuma.quantizer import capture_block_inputs, find_blocks, named_linears
 
 
 def layer_error(w: torch.Tensor, x: torch.Tensor, bits: int, group: int,

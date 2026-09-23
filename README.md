@@ -1,36 +1,37 @@
-# TinyQ
+# Octuma
 
 Cuantizacion INT4/INT8 de modelos de lenguaje, pensada para que corran en
 laptops modestas, servidores chicos y telefonos Android.
 
-Un modelo de 3B en FP16 pide ~6.2 GB de memoria. TinyQ lo baja a **2.4 GB
+Un modelo de 3B en FP16 pide ~6.2 GB de memoria. Octuma lo baja a **2.4 GB
 perdiendo 2.4% de calidad**, y el archivo resultante corre en llama.cpp, que es
 lo que usa cualquier telefono o laptop sin GPU.
 
 ```bash
-pip install "tiny-q[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
+pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/octuma.git"
 
-tinyq quantize Qwen/Qwen2.5-3B-Instruct    # cuantiza, sin elegir nada
-tinyq compare qwen2.5-3b-instruct-int4     # ¿quedo bien?
-tinyq try qwen2.5-3b-instruct-int4         # ¿sigue hablando bien?
+octuma quantize Qwen/Qwen2.5-3B-Instruct    # cuantiza, sin elegir nada
+octuma compare qwen2.5-3b-instruct-int4     # ¿quedo bien?
+octuma try qwen2.5-3b-instruct-int4         # ¿sigue hablando bien?
 ```
 
 No hay que decidir metodo, bits ni carpeta: los valores por defecto son la
 configuracion que gana en nuestras propias mediciones, la GPU se detecta sola y
 te avisa **antes de descargar nada** si el modelo no va a caber en tu memoria.
 
-> **El paquete se llama `tiny-q`, con guion.** `tinyq` a secas en PyPI es otro
-> proyecto sin relacion (un gestor de colas de trabajo, de otro autor). Lo que
-> se importa y el comando de la terminal si son `tinyq`.
+> **El proyecto se llamaba TinyQ** y se renombro a Octuma el 2026-09-22, para
+> compartir nombre con la app Android que corre estos modelos. Lo que se
+> instala, lo que se importa y el comando de la terminal son los tres `octuma`.
+> Los repos de los modelos en Hugging Face todavia llevan el nombre viejo.
 
 ## Instalacion
 
 ```bash
 # lo normal: cuantizar modelos de Hugging Face y exportar a GGUF
-pip install "tiny-q[hf,gguf] @ git+https://github.com/1mano1/TinyQ.git"
+pip install "octuma[hf,gguf] @ git+https://github.com/1mano1/octuma.git"
 
 # solo el motor, si ya traes torch y no vas a exportar
-pip install "git+https://github.com/1mano1/TinyQ.git"
+pip install "git+https://github.com/1mano1/octuma.git"
 ```
 
 Necesita Python 3.10+ y PyTorch. Para cuantizar con GPU hace falta una
@@ -69,13 +70,13 @@ llama-cli -m qwen3b/qwen3b-int4.gguf -p "Hola"
 
 ### Contra los formatos de llama.cpp, dentro de llama.cpp
 
-Es la comparacion que importa para correr en local: el `.gguf` de TinyQ medido
+Es la comparacion que importa para correr en local: el `.gguf` de Octuma medido
 con el mismo motor, el mismo corpus y las mismas ventanas que sus rivales.
 
 ![Degradacion por tamaño del modelo](docs/img/gguf-por-tamano.png#gh-light-mode-only)
 ![Degradacion por tamaño del modelo](docs/img/gguf-por-tamano-dark.png#gh-dark-mode-only)
 
-| Modelo | TinyQ INT4 | Q4_K_M | Q4_0 |
+| Modelo | Octuma INT4 | Q4_K_M | Q4_0 |
 |---|---|---|---|
 | Qwen2.5-0.5B | +3.73% | **+2.63%** | +13.17% |
 | Qwen2.5-1.5B | **+2.11%** | +4.74% | +8.35% |
@@ -85,12 +86,12 @@ Calidad perdida frente al mismo original en F16; menos es mejor, y en negritas
 el mejor de cada fila.
 
 **Al crecer el modelo, Q4_K_M se degrada cada vez mas (2.63% → 4.74% → 6.21%)
-mientras TinyQ se mantiene plano (3.73% → 2.11% → 2.43%).** En el 3B, TinyQ
+mientras Octuma se mantiene plano (3.73% → 2.11% → 2.43%).** En el 3B, Octuma
 hace **2.6 veces menos dano** que Q4_K_M, que es el formato mas usado para
 correr modelos en local.
 
 **En el 0.5B, Q4_K_M gana**: pierde menos y ocupa menos (0.40 GB contra 0.52).
-El cruce esta entre 0.5B y 1.5B. Si tu modelo es diminuto, usa Q4_K_M; TinyQ
+El cruce esta entre 0.5B y 1.5B. Si tu modelo es diminuto, usa Q4_K_M; Octuma
 rinde cuando el modelo crece, que es justo cuando la memoria aprieta.
 
 Detalle por modelo, con grafica y tabla completa, en
@@ -101,15 +102,15 @@ Detalle por modelo, con grafica y tabla completa, en
 ![Comparativa contra otros cuantizadores](docs/img/comparativa-herramientas.png#gh-light-mode-only)
 ![Comparativa contra otros cuantizadores](docs/img/comparativa-herramientas-dark.png#gh-dark-mode-only)
 
-Sobre el mismo Qwen2.5-3B, con el mismo evaluador y las mismas ventanas, TinyQ
+Sobre el mismo Qwen2.5-3B, con el mismo evaluador y las mismas ventanas, Octuma
 hace **menos de la mitad de dano** que bitsandbytes NF4, el cuantizador por
 defecto de Hugging Face y el que usa QLoRA:
 
 | Herramienta | Perplejidad | Memoria | Perdida |
 |---|---|---|---|
 | FP16 (sin cuantizar) | 8.347 | 6.79 GB | — |
-| **TinyQ GPTQ+AWQ** | **8.549** | 2.76 GB | **+2.4%** |
-| TinyQ GPTQ | 8.578 | 2.76 GB | +2.8% |
+| **Octuma GPTQ+AWQ** | **8.549** | 2.76 GB | **+2.4%** |
+| Octuma GPTQ | 8.578 | 2.76 GB | +2.8% |
 | bitsandbytes NF4 | 8.906 | 2.63 GB | +6.7% |
 | bitsandbytes FP4 | 13.343 | 2.63 GB | +59.9% |
 
@@ -127,12 +128,12 @@ Los numeros salen de `runs/*.json` y las graficas se regeneran con
 detalle esta en [`runs/COMPARATIVA.md`](runs/COMPARATIVA.md) y
 [`runs/COMPARATIVA_GGUF.md`](runs/COMPARATIVA_GGUF.md).
 
-### Lo que TinyQ **no** hace
+### Lo que Octuma **no** hace
 
 Los modelos cuantizados **generan mas lento** en PyTorch: 4.2 tokens/s contra
 14.4 del original en Qwen 3B. `QuantLinear` desempaqueta los 4 bits en cada
 multiplicacion sin un kernel dedicado, que es lo que si traen bitsandbytes y
-AutoGPTQ. El argumento de TinyQ es **memoria y calidad**, no velocidad: para
+AutoGPTQ. El argumento de Octuma es **memoria y calidad**, no velocidad: para
 correr rapido, exporta a GGUF y usa llama.cpp.
 
 Tampoco esta comparado contra AutoGPTQ ni GPTQModel, que son los rivales
@@ -149,7 +150,7 @@ tecnicos mas directos: hoy no instalan con setuptools moderno.
 
 ### Precision mixta guiada por datos
 
-No todas las capas sufren igual. `tinyq analyze` mide, capa por capa, cuanto
+No todas las capas sufren igual. `octuma analyze` mide, capa por capa, cuanto
 cambia su **salida** al cuantizar, no cuanto cambian sus pesos:
 
 ```
@@ -160,8 +161,8 @@ Con eso ordena las capas por dano real y arma un plan: las mas sensibles suben
 a 8 bits y el resto se queda en 4, sin pasarse del promedio de bits que pidas.
 
 ```bash
-tinyq analyze Qwen/Qwen2.5-0.5B-Instruct --target-bits 4.5 -o plan.json
-tinyq quantize Qwen/Qwen2.5-0.5B-Instruct --out out/qwen-mix --plan plan.json
+octuma analyze Qwen/Qwen2.5-0.5B-Instruct --target-bits 4.5 -o plan.json
+octuma quantize Qwen/Qwen2.5-0.5B-Instruct --out out/qwen-mix --plan plan.json
 ```
 
 ### Por que por grupos y asimetrico
@@ -177,17 +178,17 @@ cero, o sea ~4.5 bits por peso en vez de 4.
 ## Android y llama.cpp
 
 El exportador escribe GGUF con los pesos en **Q4_1**, que es exactamente el
-mismo formato que un grupo asimetrico de 32 de TinyQ:
+mismo formato que un grupo asimetrico de 32 de Octuma:
 
 ```
-TinyQ:  w = (q - z)·s        Q4_1:  w = d·q + m        d = s,  m = -z·s
+Octuma:  w = (q - z)·s        Q4_1:  w = d·q + m        d = s,  m = -z·s
 ```
 
 Por eso el exportador exige grupos de 32, que ya es el valor por defecto:
 
 ```bash
-tinyq quantize <modelo>
-tinyq export <carpeta-int4> --out modelo-int4.gguf
+octuma quantize <modelo>
+octuma export <carpeta-int4> --out modelo-int4.gguf
 python scripts/verify_gguf.py <carpeta-int4> modelo-int4.gguf
 ```
 
@@ -199,23 +200,27 @@ Nos paso, y los tres modelos publicados estuvieron degradados hasta que
 `verify_gguf.py` aprendio a revisar los metadatos ademas de los pesos. Devuelve
 codigo de error, asi que puede ir en CI.
 
-**Verificado de verdad**: Qwen2.5-0.5B cuantizado con TinyQ, exportado a GGUF y
+**Verificado de verdad**: Qwen2.5-0.5B cuantizado con Octuma, exportado a GGUF y
 ejecutado en llama.cpp:
 
 ```
-$ llama-completion -m qwen05b-int4.gguf -p "La capital de Francia es" --temp 0
-La capital de Francia es la ciudad de Paris.
+$ llama-cli -m qwen05b-int4.gguf -p "La capital de Francia es" --temp 0 -n 32 -st -ngl 0
+La capital de Francia es París.
 
-prompt eval: 121 tokens/s · eval: 77 tokens/s   (CPU de laptop, 6 hilos)
+prompt: 229 tok/s · generacion: 64 tok/s   (solo CPU, 6 hilos)
 ```
+
+Tiene que ser `llama-cli` y no `llama-completion`: estos son modelos *Instruct*
+y `llama-cli` les aplica su plantilla de chat. Con completado crudo, el 0.5B y
+`--temp 0` se quedan repitiendo la pregunta.
 
 ## Uso desde Python
 
 ```python
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from tinyq.calibrate import load_wikitext2
-from tinyq.quantizer import QuantConfig, quantize_model
-from tinyq.export.tq import save_quantized
+from octuma.calibrate import load_wikitext2
+from octuma.quantizer import QuantConfig, quantize_model
+from octuma.export.tq import save_quantized
 
 model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
 tok = AutoTokenizer.from_pretrained("Qwen/Qwen2.5-0.5B-Instruct")
@@ -231,7 +236,7 @@ Cargar uno ya cuantizado:
 
 ```python
 from transformers import AutoConfig, AutoModelForCausalLM
-from tinyq.export.tq import load_quantized
+from octuma.export.tq import load_quantized
 
 cfg = AutoConfig.from_pretrained("out/qwen-int4")
 model = load_quantized(AutoModelForCausalLM.from_config(cfg), "out/qwen-int4")
@@ -256,13 +261,21 @@ GPTQ+AWQ  >  GPTQ  >  AWQ-RTN  >  RTN
 Degradacion del mejor metodo frente a FP16: 5.2% (0.5B), 2.3% (1.5B), 2.4%
 (3B), 1.8% (7B con GPTQ solo: sus corridas con AWQ no cabian en memoria).
 INT8 es practicamente gratis (+0.03%) pero solo comprime 1.91x; INT4 comprime
-3.66x.
+3.66x, contando solo los pesos: el modelo entero baja 59% en el 3B, porque los
+embeddings se quedan en FP16.
+
+> El barrido se corrio con **grupos de 64**, que era el valor por defecto
+> entonces. Hoy la CLI usa 32, que es lo que exige el exportador a GGUF y lo
+> que llevan dentro los tres modelos publicados. Grupos mas chicos guardan mas
+> escalas y por eso comprimen menos: 3.66x con 64 contra 3.37x con 32 en el
+> 0.5B. Las tablas de llama.cpp de mas arriba si son con 32; lo que no esta
+> medido es cuanta perplejidad cambia entre un tamaño de grupo y el otro.
 
 ### Cuanta calibracion hace falta
 
-GPTQ estima `H = X·Xᵀ` por capa. Con menos tokens que dimensiones tenga la
-capa, esa matriz es singular y la compensacion de error se vuelve ruido: el
-resultado sale **peor** que no usar GPTQ. Lo medimos en el 0.5B:
+GPTQ estima esa misma `H = 2·XXᵀ` por capa. Con menos tokens que dimensiones
+tenga la capa, esa matriz es singular y la compensacion de error se vuelve
+ruido: el resultado sale **peor** que no usar GPTQ. Lo medimos en el 0.5B:
 
 | Tokens de calibracion | GPTQ | GPTQ + AWQ |
 |---|---|---|
@@ -301,8 +314,8 @@ Detalle en [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md).
 ## Desarrollo
 
 ```bash
-git clone https://github.com/1mano1/TinyQ.git
-cd TinyQ
+git clone https://github.com/1mano1/octuma.git
+cd octuma
 pip install -e ".[hf,gguf,dev]"
 pytest -q          # 60 pruebas, segundos en CPU
 ruff check .
@@ -315,10 +328,10 @@ defaults son lo que se midio como mejor.
 
 ## Licencia
 
-El codigo de TinyQ es **MIT** (ver [LICENSE](LICENSE)).
+El codigo de Octuma es **MIT** (ver [LICENSE](LICENSE)).
 
 **Los modelos son otra cosa.** Un modelo cuantizado es una obra derivada: se
-queda con la licencia del original, y la de TinyQ no la afloja. Por eso cada
+queda con la licencia del original, y la de Octuma no la afloja. Por eso cada
 repo publicado lleva dentro la licencia de su modelo base:
 
 | Base | Licencia | Uso comercial |
@@ -326,7 +339,7 @@ repo publicado lleva dentro la licencia de su modelo base:
 | Qwen2.5-0.5B / 1.5B / 7B-Instruct | Apache 2.0 | si |
 | Qwen2.5-3B-Instruct | [Qwen Research](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/blob/main/LICENSE) | **no** |
 
-Si cuantizas otro modelo con TinyQ, revisa su licencia antes de publicarlo:
+Si cuantizas otro modelo con Octuma, revisa su licencia antes de publicarlo:
 varias familias populares (Llama, Gemma) traen condiciones propias que viajan
 con los pesos derivados.
 

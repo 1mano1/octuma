@@ -1,8 +1,8 @@
 import torch
 
-from tinyq.quant.core import quantize_tensor
-from tinyq.quant.gptq import GPTQConfig, LayerStats, gptq_quantize
-from tinyq.quant.qlinear import QuantLinear
+from octuma.quant.core import quantize_tensor
+from octuma.quant.gptq import GPTQConfig, LayerStats, gptq_quantize
+from octuma.quant.qlinear import QuantLinear
 
 
 def _fake_layer(in_features=128, out_features=64, seed=0):

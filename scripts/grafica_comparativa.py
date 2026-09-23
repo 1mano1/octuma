@@ -2,7 +2,7 @@
 
 Dos figuras, cada una en claro y oscuro (GitHub elige segun el tema del lector):
 
-  docs/img/comparativa-herramientas.png   TinyQ contra otros cuantizadores
+  docs/img/comparativa-herramientas.png   Octuma contra otros cuantizadores
   docs/img/degradacion-por-tamano.png     cuanto duele cuantizar segun el tamano
 
 Los numeros salen de runs/*.json, no se escriben a mano: si el barrido cambia,
@@ -72,8 +72,8 @@ def datos_herramientas() -> list[tuple[str, float, bool]]:
     # diferencias que importan (2.4 contra 6.7) se vuelven invisibles. Va en la
     # nota al pie, que es donde se lee sin deformar el resto.
     candidatos = [
-        ("TinyQ GPTQ+AWQ", "qwen3b__gptq-awq-int4__w20s2048_float16", True),
-        ("TinyQ GPTQ", "qwen3b__gptq-int4__w20s2048_float16", True),
+        ("Octuma GPTQ+AWQ", "qwen3b__gptq-awq-int4__w20s2048_float16", True),
+        ("Octuma GPTQ", "qwen3b__gptq-int4__w20s2048_float16", True),
         ("bitsandbytes NF4", "baseline__bnb-nf4__qwen3b", False),
     ]
     filas = []
@@ -193,7 +193,7 @@ def grafica_por_tamano(tema: dict) -> None:
     ax.set_title("Entre más grande el modelo, menos duele cuantizarlo",
                  color=tema["texto"], fontsize=13, fontweight="bold",
                  loc="left", pad=16)
-    nota = "Mejor metodo de TinyQ frente a FP16, misma evaluacion en los cuatro modelos."
+    nota = "Mejor metodo de Octuma frente a FP16, misma evaluacion en los cuatro modelos."
     if hay_asterisco:
         nota += "\n*GPTQ sin AWQ: esa corrida no cabia en memoria."
     ax.text(0, -0.24, nota, transform=ax.transAxes, color=tema["texto2"],

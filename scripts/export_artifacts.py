@@ -38,10 +38,10 @@ def main() -> None:
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    from tinyq.calibrate import load_calibration
-    from tinyq.export.gguf_export import export_gguf
-    from tinyq.export.tq import disk_size, save_quantized
-    from tinyq.quantizer import QuantConfig, quantize_model
+    from octuma.calibrate import load_calibration
+    from octuma.export.gguf_export import export_gguf
+    from octuma.export.tq import disk_size, save_quantized
+    from octuma.quantizer import QuantConfig, quantize_model
 
     cfg_all = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     models = cfg_all["models"]
@@ -55,7 +55,7 @@ def main() -> None:
         short, model_id = m["short"], m["id"]
         dest = OUT / f"{short}-int{args.bits}-g{args.group}"
         gguf_path = OUT / f"{short}-int{args.bits}.gguf"
-        if (dest / "tinyq.json").exists() and (gguf_path.exists() or args.no_gguf):
+        if (dest / "octuma.json").exists() and (gguf_path.exists() or args.no_gguf):
             print(f"[skip] {short}: ya existe")
             continue
 
@@ -86,7 +86,7 @@ def main() -> None:
 
             if not args.no_gguf:
                 model.to("cpu")
-                export_gguf(model, gguf_path, dest, name=f"{short}-tinyq-int{args.bits}")
+                export_gguf(model, gguf_path, dest, name=f"{short}-octuma-int{args.bits}")
                 print(f"       gguf listo: {gguf_path.stat().st_size / 1e9:.2f} GB")
 
             resumen.append({

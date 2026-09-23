@@ -177,7 +177,7 @@ def main() -> None:
 
     c = sub.add_parser("create", help="crea un pod")
     c.add_argument("--gpu", default="NVIDIA A40")
-    c.add_argument("--name", default="tinyq-sweep")
+    c.add_argument("--name", default="octuma-sweep")
     c.add_argument(
         "--image", default="runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04"
     )

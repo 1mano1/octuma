@@ -1,14 +1,28 @@
 [project]
-# El nombre de distribucion es "tiny-q" porque "tinyq" ya esta tomado en PyPI
-# por un gestor de colas sin relacion con esto. El paquete que se importa y el
-# comando siguen siendo "tinyq".
-name = "tiny-q"
+# Todo se llama igual: lo que se instala, lo que se importa y el comando.
+# Antes no era asi: el proyecto se llamaba TinyQ y hubo que distribuirlo como
+# "tiny-q" porque "tinyq" estaba tomado en PyPI por un gestor de colas sin
+# relacion. "octuma" estaba libre el 2026-09-22 (PyPI responde 404), asi que
+# esa costura desaparecio.
+# Libre no es reservado: nadie lo tiene hasta que se suba.
+name = "octuma"
 version = "0.1.0"
 description = "Cuantizacion INT4/INT8 de modelos de lenguaje para equipos modestos y telefonos Android"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Imanol Rodriguez" }]
+keywords = ["cuantizacion", "quantization", "int4", "gptq", "awq", "gguf", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
 dependencies = [
     "torch>=2.2",
     "safetensors>=0.4",
@@ -23,11 +37,17 @@ hf = ["transformers>=4.44", "datasets>=2.20", "sentencepiece", "accelerate"]
 gguf = ["gguf>=0.10"]
 dev = ["pytest>=8", "pytest-cov", "ruff>=0.6"]
 
+[project.urls]
+# Estas URLs son la barra lateral de la pagina de PyPI: si el repo se renombra,
+# se cambian aqui tambien o la unica via de entrada al proyecto queda rota.
+Repository = "https://github.com/1mano1/octuma"
+Issues = "https://github.com/1mano1/octuma/issues"
+
 [project.scripts]
-tinyq = "tinyq.cli:app"
+octuma = "octuma.cli:app"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -57,8 +77,8 @@ ignore = ["E501"]
 "scripts/*" = ["E402", "B023"]
 # typer declara las opciones como typer.Option(...) en los valores por defecto:
 # es su forma normal de trabajar, no la trampa que B008 quiere evitar
-"src/tinyq/cli.py" = ["B008"]
+"src/octuma/cli.py" = ["B008"]
 # los hooks capturan la variable del bucle con _name=name, que es el patron
 # correcto; B023 no lo reconoce y marca falsos positivos
-"src/tinyq/quantizer.py" = ["B023"]
-"src/tinyq/sensitivity.py" = ["B023"]
+"src/octuma/quantizer.py" = ["B023"]
+"src/octuma/sensitivity.py" = ["B023"]

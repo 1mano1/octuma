@@ -13,11 +13,11 @@ import argparse
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from tinyq.calibrate import load_calibration
-from tinyq.quant.awq import llama_like_groups, search_scales
-from tinyq.quant.core import quantize_tensor
-from tinyq.quant.gptq import GPTQConfig, LayerStats, gptq_quantize
-from tinyq.quantizer import capture_block_inputs, find_blocks, named_linears
+from octuma.calibrate import load_calibration
+from octuma.quant.awq import llama_like_groups, search_scales
+from octuma.quant.core import quantize_tensor
+from octuma.quant.gptq import GPTQConfig, LayerStats, gptq_quantize
+from octuma.quantizer import capture_block_inputs, find_blocks, named_linears
 
 
 def err(x: torch.Tensor, w_ref: torch.Tensor, w_hat: torch.Tensor) -> float:

@@ -1,9 +1,9 @@
 """Exportacion a GGUF para llama.cpp (y de ahi a Android).
 
-Mapeo clave: un grupo asimetrico de 32 pesos de TinyQ es exactamente un bloque
+Mapeo clave: un grupo asimetrico de 32 pesos de Octuma es exactamente un bloque
 Q4_1 de llama.cpp.
 
-    TinyQ:  w = (q - z) * s
+    Octuma:  w = (q - z) * s
     Q4_1:   w = d * q + m        =>   d = s,  m = -z * s
 
 Por eso `--group 32` es obligatorio para exportar a GGUF.
@@ -115,7 +115,7 @@ def _write_vocab(writer, model_dir: Path, n_vocab: int = 0, arch: str = "") -> N
     tok_path = model_dir / "tokenizer.json"
     if not tok_path.exists():
         raise FileNotFoundError(
-            f"falta {tok_path}: exporta primero el tokenizer con tinyq quantize"
+            f"falta {tok_path}: exporta primero el tokenizer con octuma quantize"
         )
     data = json.loads(tok_path.read_text(encoding="utf-8"))
     vocab: dict[str, int] = data["model"]["vocab"]
@@ -201,9 +201,9 @@ def export_gguf(
     model: nn.Module,
     out_file: str | Path,
     model_dir: str | Path,
-    name: str = "tinyq-model",
+    name: str = "octuma-model",
 ) -> Path:
-    """Escribe un GGUF con los pesos cuantizados de TinyQ.
+    """Escribe un GGUF con los pesos cuantizados de Octuma.
 
     `model_dir` es la carpeta .tq (necesita tokenizer.json y config).
     """

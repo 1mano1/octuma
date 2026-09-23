@@ -1,6 +1,6 @@
 """Publica el .gguf arreglado y su ficha en Hugging Face.
 
-La ficha se genera desde runs/gguf__<slug>.json y tinyq.json: ningun numero se
+La ficha se genera desde runs/gguf__<slug>.json y octuma.json: ningun numero se
 escribe a mano. Reemplaza el .gguf con el mismo nombre que ya tenia el repo,
 para no romper los enlaces ni los ejemplos.
 
@@ -42,7 +42,7 @@ MODELOS = {
     ),
 }
 
-GITHUB = "https://github.com/1mano1/TinyQ"
+GITHUB = "https://github.com/1mano1/octuma"
 
 # Exigido por la Qwen RESEARCH LICENSE §3c. Literal, no parafrasear.
 AVISO_QWEN = (
@@ -82,7 +82,7 @@ def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict, lic: dict
     corto = repo.split("/")[-1]
 
     filas = sorted(d["resultados"], key=lambda r: (r["familia"] != "original", r["dano_pct"]))
-    nuestro = next(r for r in d["resultados"] if r["familia"] == "tinyq")
+    nuestro = next(r for r in d["resultados"] if r["familia"] == "octuma")
     f16 = next(r for r in d["resultados"] if r["familia"] == "original")
     rival = min(
         (r for r in d["resultados"] if r["familia"] == "llama.cpp"),
@@ -92,7 +92,7 @@ def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict, lic: dict
     tabla = ["| Formato | Perplejidad | Calidad perdida | Tamaño |", "|---|---|---|---|"]
     for r in filas:
         dano = "—" if r["familia"] == "original" else f"+{r['dano_pct']:.2f}%"
-        nombre = f"**{r['etiqueta']}** (este modelo)" if r["familia"] == "tinyq" else r["etiqueta"]
+        nombre = f"**{r['etiqueta']}** (este modelo)" if r["familia"] == "octuma" else r["etiqueta"]
         tabla.append(f"| {nombre} | {r['ppl']:.4f} | {dano} | {r['bytes'] / 1e9:.2f} GB |")
 
     if nuestro["dano_pct"] < rival["dano_pct"]:
@@ -106,7 +106,7 @@ def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict, lic: dict
         veredicto = (
             f"**En este tamaño, {rival['etiqueta']} rinde mejor** "
             f"(+{rival['dano_pct']:.2f}% contra +{nuestro['dano_pct']:.2f}%) y ocupa menos. "
-            f"La ventaja de TinyQ aparece en modelos mas grandes: en Qwen2.5-3B la relacion "
+            f"La ventaja de Octuma aparece en modelos mas grandes: en Qwen2.5-3B la relacion "
             f"se invierte. La tabla esta aqui para que se vea, no para esconderla."
         )
 
@@ -122,8 +122,8 @@ def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict, lic: dict
         bloque_lic = (
             f"Los pesos derivan de [`{base}`](https://huggingface.co/{base}), bajo "
             f"**Apache 2.0**; la copia del original va en `LICENSE`. El codigo de "
-            f"TinyQ es MIT.\n\nLos archivos de pesos estan **modificados** respecto "
-            f"al original: cuantizados a INT4 con TinyQ."
+            f"Octuma es MIT.\n\nLos archivos de pesos estan **modificados** respecto "
+            f"al original: cuantizados a INT4 con Octuma."
         )
     else:
         aviso = (
@@ -138,9 +138,9 @@ def ficha(slug: str, repo: str, gguf_nombre: str, meta: dict, d: dict, lic: dict
             f"[Qwen RESEARCH LICENSE AGREEMENT]({lic['enlace']}), **no comercial**. "
             f"La copia integra del acuerdo va en `LICENSE` y el aviso de atribucion "
             f"en `NOTICE`, como pide su §3.\n\nLos archivos de pesos estan "
-            f"**modificados** respecto al original: cuantizados a INT4 con TinyQ (§3b).\n\n"
+            f"**modificados** respecto al original: cuantizados a INT4 con Octuma (§3b).\n\n"
             f"> {AVISO_QWEN}\n\n"
-            f"El codigo de TinyQ es MIT, pero **eso no afloja las condiciones de los "
+            f"El codigo de Octuma es MIT, pero **eso no afloja las condiciones de los "
             f"pesos**: son dos licencias distintas sobre dos cosas distintas."
         )
 
@@ -153,7 +153,7 @@ language:
   - en
   - es
 tags:
-  - tinyq
+  - octuma
   - quantized
   - int4
   - gguf
@@ -165,7 +165,7 @@ tags:
 Built with Qwen.
 
 [`{base}`]({f"https://huggingface.co/{base}"}) cuantizado a **INT4** con
-[TinyQ]({GITHUB}): **{f16["bytes"] / 1e9:.2f} GB → {nuestro["bytes"] / 1e9:.2f} GB**
+[Octuma]({GITHUB}): **{f16["bytes"] / 1e9:.2f} GB → {nuestro["bytes"] / 1e9:.2f} GB**
 ({nuestro["compresion"]:.2f}x mas chico) perdiendo **{nuestro["dano_pct"]:.2f}%** de calidad.
 
 {aviso}
@@ -202,14 +202,14 @@ llama-cli -m {slug}/{gguf_nombre} -p "Hola"
 ### PyTorch
 
 ```bash
-pip install "tiny-q[hf] @ git+{GITHUB}.git"
+pip install "octuma[hf] @ git+{GITHUB}.git"
 ```
 
 ```python
 from huggingface_hub import snapshot_download
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
-from tinyq.export.tq import load_quantized
+from octuma.export.tq import load_quantized
 
 ruta = snapshot_download("{repo}")
 cfg = AutoConfig.from_pretrained(ruta)
@@ -217,20 +217,20 @@ modelo = load_quantized(AutoModelForCausalLM.from_config(cfg), ruta)
 tok = AutoTokenizer.from_pretrained(ruta)
 ```
 
-En PyTorch el modelo cuantizado **genera mas lento** que el original: TinyQ
+En PyTorch el modelo cuantizado **genera mas lento** que el original: Octuma
 desempaqueta los 4 bits en cada multiplicacion sin un kernel dedicado. Para
 velocidad, usa el `.gguf` con llama.cpp.
 
 ## Como se hizo
 
 ```bash
-tinyq quantize {base}
-tinyq export <carpeta> --out {gguf_nombre}
+octuma quantize {base}
+octuma export <carpeta> --out {gguf_nombre}
 python scripts/verify_gguf.py <carpeta> {gguf_nombre}
 ```
 
 **GPTQ + AWQ** con grupos de {grupo} pesos, calibrado con
-{meta.get("calibration", "wikitext-2")}. TinyQ cuantiza por grupos con punto
+{meta.get("calibration", "wikitext-2")}. Octuma cuantiza por grupos con punto
 cero, reparte el error de redondeo entre las columnas pendientes (GPTQ) y
 escala los canales segun su importancia en las activaciones (AWQ).
 
@@ -256,7 +256,7 @@ def main() -> None:
 
     repo, gguf_local, gguf_nombre, tq = MODELOS[args.slug]
     d = json.loads((RUNS / f"gguf__{args.slug}.json").read_text(encoding="utf-8"))
-    meta = json.loads((tq / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((tq / "octuma.json").read_text(encoding="utf-8"))
 
     if not gguf_local.exists():
         raise SystemExit(f"falta {gguf_local}")
@@ -325,7 +325,7 @@ def main() -> None:
         aviso.write_text(
             f"{AVISO_QWEN}\n\n"
             f"Este repositorio contiene una obra derivada de {base}:\n"
-            f"los pesos fueron modificados (cuantizados a INT4) con TinyQ,\n"
+            f"los pesos fueron modificados (cuantizados a INT4) con Octuma,\n"
             f"{GITHUB}\n",
             encoding="utf-8",
         )

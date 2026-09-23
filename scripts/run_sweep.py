@@ -92,7 +92,7 @@ def baseline_id(short: str, d: dict) -> str:
 
 
 def run_baseline(model_cfg: dict, d: dict, force: bool = False) -> dict:
-    from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
+    from octuma.evaluate import model_size_bytes, perplexity, wikitext2_ids
 
     rid = baseline_id(model_cfg["short"], d)
     path = RUNS / f"{rid}.json"
@@ -125,9 +125,9 @@ def run_baseline(model_cfg: dict, d: dict, force: bool = False) -> dict:
 
 
 def run_one(model_cfg: dict, method: dict, d: dict, tag: str = "", force: bool = False) -> dict | None:
-    from tinyq.calibrate import load_calibration
-    from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
-    from tinyq.quantizer import QuantConfig, quantize_model
+    from octuma.calibrate import load_calibration
+    from octuma.evaluate import model_size_bytes, perplexity, wikitext2_ids
+    from octuma.quantizer import QuantConfig, quantize_model
 
     rid = f"{model_cfg['short']}__{method['name']}{tag}__{eval_tag(d)}"
     path = RUNS / f"{rid}.json"
