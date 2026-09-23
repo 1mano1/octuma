@@ -23,19 +23,19 @@ RUNS = Path("runs")
 # slug -> (repo, .gguf arreglado en local, nombre dentro del repo, carpeta .tq)
 MODELOS = {
     "qwen0.5b": (
-        "Imanol11/qwen0.5b-int4-TinyQ",
+        "Imanol11/qwen0.5b-int4-Octuma",
         Path("out/qwen05b-int4-fix.gguf"),
         "qwen0.5b-int4.gguf",
         Path("out/qwen05b-tq"),
     ),
     "qwen1.5b": (
-        "Imanol11/qwen1.5b-int4-TinyQ",
+        "Imanol11/qwen1.5b-int4-Octuma",
         Path("out/qwen15b-int4-fix.gguf"),
         "qwen1.5b-int4.gguf",
         Path("out/qwen15b-tq"),
     ),
     "qwen3b": (
-        "Imanol11/qwen3b-int4-TinyQ",
+        "Imanol11/qwen3b-int4-Octuma",
         Path("out/qwen3b-int4-fix.gguf"),
         "qwen3b-int4.gguf",
         Path("out/qwen3b-tq"),
