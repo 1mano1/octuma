@@ -1,6 +1,6 @@
 """Octuma: cuantizacion de modelos de lenguaje para equipos modestos y Android."""
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 from .quant import (
     GPTQConfig,

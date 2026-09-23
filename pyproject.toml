@@ -6,7 +6,10 @@
 # esa costura desaparecio.
 # Libre no es reservado: nadie lo tiene hasta que se suba.
 name = "octuma"
-version = "0.1.0"
+# La version vive SOLO en src/octuma/__init__.py. Estaba escrita tambien aqui,
+# y nada obligaba a que coincidieran: se podia publicar un paquete que dijera
+# una version y un `octuma --version` que dijera otra.
+dynamic = ["version"]
 description = "Cuantizacion INT4/INT8 de modelos de lenguaje para equipos modestos y telefonos Android"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -40,6 +43,7 @@ dev = ["pytest>=8", "pytest-cov", "ruff>=0.6"]
 [project.urls]
 # Estas URLs son la barra lateral de la pagina de PyPI: si el repo se renombra,
 # se cambian aqui tambien o la unica via de entrada al proyecto queda rota.
+Homepage = "https://github.com/1mano1/octuma"
 Repository = "https://github.com/1mano1/octuma"
 Issues = "https://github.com/1mano1/octuma/issues"
 
@@ -52,6 +56,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.dynamic]
+version = { attr = "octuma.__version__" }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
