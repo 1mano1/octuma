@@ -1,7 +1,7 @@
-"""Compara TinyQ contra cuantizadores de terceros en igualdad de condiciones.
+"""Compara Octuma contra cuantizadores de terceros en igualdad de condiciones.
 
 Todo lo de este repo se habia medido contra si mismo: se sabia que metodo de
-TinyQ era el mejor, pero no si TinyQ compite con lo que ya existe. Aqui se
+Octuma era el mejor, pero no si Octuma compite con lo que ya existe. Aqui se
 cuantiza el MISMO modelo con otra herramienta y se evalua con el MISMO
 evaluador (misma prueba, mismas ventanas, mismo corpus), que es la unica forma
 de que los numeros se puedan poner en la misma tabla.
@@ -28,7 +28,7 @@ RUNS = Path("runs")
 
 
 def medir(model, tok, short: str, etiqueta: str, windows: int, seq_len: int) -> dict:
-    from tinyq.evaluate import model_size_bytes, perplexity, wikitext2_ids
+    from octuma.evaluate import model_size_bytes, perplexity, wikitext2_ids
 
     ids = wikitext2_ids(tok)
     res = perplexity(

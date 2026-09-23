@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from tinyq.quant.core import (
+from octuma.quant.core import (
     dequantize_groupwise,
     pack_bits,
     quantization_error,

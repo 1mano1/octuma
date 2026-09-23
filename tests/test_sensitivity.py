@@ -1,7 +1,7 @@
 import torch
 
-from tinyq.quant.core import quantize_tensor
-from tinyq.sensitivity import (
+from octuma.quant.core import quantize_tensor
+from octuma.sensitivity import (
     LayerSensitivity,
     SensitivityReport,
     analyze_sensitivity,

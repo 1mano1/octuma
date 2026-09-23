@@ -4,9 +4,9 @@ import numpy as np
 import pytest
 import torch
 
-from tinyq.export.gguf_export import _q4_1_blocks, _q8_0_blocks, export_gguf
-from tinyq.quant.core import quantize_groupwise
-from tinyq.quantizer import QuantConfig, quantize_model
+from octuma.export.gguf_export import _q4_1_blocks, _q8_0_blocks, export_gguf
+from octuma.quant.core import quantize_groupwise
+from octuma.quantizer import QuantConfig, quantize_model
 
 from .test_pipeline import VOCAB, calib, tiny_llama
 
@@ -108,7 +108,7 @@ def test_rope_theta_anidado_en_rope_parameters():
     """
     from types import SimpleNamespace
 
-    from tinyq.export.gguf_export import _rope_theta
+    from octuma.export.gguf_export import _rope_theta
 
     plano = SimpleNamespace(rope_theta=1000000.0)
     assert _rope_theta(plano) == 1000000.0
@@ -127,7 +127,7 @@ def test_tokens_especiales_desde_added_tokens(tmp_path):
     Buscarlos solo en model.vocab los perdia en silencio y el GGUF salia sin
     eos, asi que llama.cpp no sabia cuando parar de generar.
     """
-    from tinyq.export.gguf_export import _special_token_ids
+    from octuma.export.gguf_export import _special_token_ids
 
     vocab = {"hola": 0, "mundo": 1}
     added = {151645: "<|im_end|>"}
@@ -145,7 +145,7 @@ def test_pre_tokenizador_por_arquitectura(tmp_path):
     modelo aprendio, y la perplejidad sube aunque los pesos sean correctos."""
     from transformers import LlamaConfig, LlamaForCausalLM
 
-    from tinyq.export.gguf_export import _PRE_POR_ARCH
+    from octuma.export.gguf_export import _PRE_POR_ARCH
 
     assert _PRE_POR_ARCH["qwen2"] == "qwen2"
 

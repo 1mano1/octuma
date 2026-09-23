@@ -1,4 +1,4 @@
-# Matriz de experimentos de TinyQ.
+# Matriz de experimentos de Octuma.
 # Cada combinacion valida de modelo x metodo se cuantiza, se evalua y se
 # guarda en runs/<id>.json. El corredor salta lo que ya existe, asi que se
 # puede interrumpir y retomar.

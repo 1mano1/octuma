@@ -8,7 +8,7 @@
 # encuentra el centinela /workspace/.modelos_a_salvo que se escribe abajo.
 set -uo pipefail
 
-cd /workspace/TinyQ
+cd /workspace/Octuma
 # La cache va en /workspace: el disco de root son 30 GB y un modelo de 7B en
 # FP16 pide 15. Cuando no cabe, la descarga revienta a media transferencia y
 # el error llega disfrazado de fallo de red del CAS de Hugging Face.
@@ -82,7 +82,7 @@ if [ -n "$TOKEN" ]; then
     [ -d "$dir" ] || continue
     short=$(basename "$dir" | cut -d- -f1)
     gguf="out/${short}-int4.gguf"
-    repo="${USER_HF}/$(basename "$dir" | sed 's/-g32//')-TinyQ"
+    repo="${USER_HF}/$(basename "$dir" | sed 's/-g32//')-Octuma"
     # privados a proposito: se publican cuando el autor decida
     say "subiendo $dir -> $repo (privado)"
     if python scripts/upload_hf.py "$dir" --repo "$repo" --private \

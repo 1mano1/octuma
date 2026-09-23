@@ -32,7 +32,7 @@ modelos_a_salvo() {
 # dejarlo dicho en el log antes que borrar trabajo de toda una noche.
 apagado_seguro() {
   if modelos_a_salvo; then return 0; fi
-  if [ -n "$(ls -A /workspace/TinyQ/out 2>/dev/null)" ]; then
+  if [ -n "$(ls -A /workspace/Octuma/out 2>/dev/null)" ]; then
     echo "$(date -Is) NO se apaga: hay modelos en out/ y no se confirmo la subida a Hugging Face" >> "$LOG"
     return 1
   fi

@@ -1,4 +1,4 @@
-"""Interfaz de linea de comandos de TinyQ."""
+"""Interfaz de linea de comandos de Octuma."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from . import __version__
 
 app = typer.Typer(
     add_completion=False,
-    help="TinyQ: cuantiza modelos de lenguaje a INT4/INT8 y los deja listos para equipos modestos y Android.",
+    help="Octuma: cuantiza modelos de lenguaje a INT4/INT8 y los deja listos para equipos modestos y Android.",
 )
 console = Console()
 
@@ -38,7 +38,7 @@ def _resolver_device_dtype(device: str, dtype: str, avisar_cpu: bool = True) -> 
     """Elige GPU y precision solos.
 
     Los valores por defecto de antes (cpu + float32) hacian que el comando mas
-    obvio tardara horas y diera la impresion de que TinyQ es lento.
+    obvio tardara horas y diera la impresion de que Octuma es lento.
     """
     import torch
 
@@ -104,7 +104,7 @@ def _avisar_memoria(model: str, device: str) -> None:
 @app.command()
 def version() -> None:
     """Muestra la version instalada."""
-    console.print(f"TinyQ {__version__}")
+    console.print(f"Octuma {__version__}")
 
 
 @app.command()
@@ -123,7 +123,7 @@ def quantize(
     device: str = typer.Option("auto", help="auto, cpu o cuda"),
     dtype: str = typer.Option("auto", help="auto, float16, bfloat16 o float32"),
     plan: Path = typer.Option(
-        None, "--plan", help="JSON de precision mixta generado por 'tinyq analyze'"
+        None, "--plan", help="JSON de precision mixta generado por 'octuma analyze'"
     ),
 ) -> None:
     """Calibra, cuantiza y guarda el modelo en formato .tq."""
@@ -199,7 +199,7 @@ def evaluate(
     from .export.tq import load_quantized
 
     tq_dir = Path(model)
-    is_tq = (tq_dir / "tinyq.json").exists()
+    is_tq = (tq_dir / "octuma.json").exists()
 
     if is_tq:
         console.print(f"[bold]Cargando modelo cuantizado[/bold] {model}")
@@ -281,14 +281,14 @@ def analyze(
     console.print(f"Plan: {len(plan)} capas a INT8 para un promedio de {target_bits} bits")
     if out:
         out.write_text(json.dumps(plan, indent=2), encoding="utf-8")
-        console.print(f"Plan -> {out}  (usalo con: tinyq quantize ... --plan {out})")
+        console.print(f"Plan -> {out}  (usalo con: octuma quantize ... --plan {out})")
 
 
 @app.command()
 def export(
     model_dir: Path = typer.Argument(..., help="Carpeta .tq generada por quantize"),
     out: Path = typer.Option(..., "--out", "-o", help="Archivo .gguf de salida"),
-    name: str = typer.Option("tinyq-model", help="Nombre dentro del GGUF"),
+    name: str = typer.Option("octuma-model", help="Nombre dentro del GGUF"),
 ) -> None:
     """Convierte un modelo .tq a GGUF para llama.cpp y Android."""
     from transformers import AutoConfig, AutoModelForCausalLM
@@ -310,13 +310,13 @@ def export(
 @app.command()
 def info(model_dir: Path = typer.Argument(..., help="Carpeta .tq")) -> None:
     """Muestra el contenido de un modelo cuantizado."""
-    meta = json.loads((model_dir / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
     layers = meta["layers"]
     bits = {}
     for spec in layers.values():
         bits[spec["bits"]] = bits.get(spec["bits"], 0) + 1
 
-    table = Table(title=f"TinyQ · {model_dir.name}", show_header=False)
+    table = Table(title=f"Octuma · {model_dir.name}", show_header=False)
     table.add_row("Modelo origen", str(meta.get("source_model", "?")))
     table.add_row("Arquitectura", str(meta.get("model_type", "?")))
     table.add_row("Calibracion", str(meta.get("calibration", "?")))
@@ -332,7 +332,7 @@ def info(model_dir: Path = typer.Argument(..., help="Carpeta .tq")) -> None:
 @app.command()
 def compare(
     model_dir: Path = typer.Argument(..., help="Carpeta .tq generada por quantize"),
-    original: str = typer.Option(None, help="Modelo sin cuantizar (por defecto, el que dice tinyq.json)"),
+    original: str = typer.Option(None, help="Modelo sin cuantizar (por defecto, el que dice octuma.json)"),
     windows: int = typer.Option(20, help="Ventanas a evaluar"),
     seq_len: int = typer.Option(2048, "--seqlen"),
     device: str = typer.Option("auto", help="auto, cpu o cuda"),
@@ -346,7 +346,7 @@ def compare(
     from .export.tq import load_quantized
 
     device, _ = _resolver_device_dtype(device, "auto", avisar_cpu=False)
-    meta = json.loads((model_dir / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
     original = original or meta.get("source_model")
     if not original:
         raise typer.BadParameter(
@@ -471,7 +471,7 @@ def probar(
                 return
             console.print(f"\n{_responder(net, tok, pregunta, max_new, device)}\n")
 
-    meta = json.loads((model_dir / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
     origen = meta.get("source_model")
     if not origen:
         raise typer.BadParameter("el .tq no dice de que modelo salio")

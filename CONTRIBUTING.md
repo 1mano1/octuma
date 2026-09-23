@@ -1,4 +1,4 @@
-# Contribuir a TinyQ
+# Contribuir a Octuma
 
 Gracias por pasarte. Esta guía es corta a propósito: si algo aquí no funciona
 o no se entiende, eso ya es un bug y vale la pena abrir un issue.
@@ -6,8 +6,8 @@ o no se entiende, eso ya es un bug y vale la pena abrir un issue.
 ## Poner el proyecto a andar
 
 ```bash
-git clone https://github.com/1mano1/TinyQ
-cd TinyQ
+git clone https://github.com/1mano1/octuma
+cd octuma
 python -m venv .venv && source .venv/bin/activate   # en Windows: .venv\Scripts\activate
 pip install -e ".[hf,gguf,dev]"
 pytest -q
@@ -37,9 +37,9 @@ en un commit aparte que solo cambie formato.
 
 | Carpeta | Qué hay |
 |---|---|
-| `src/tinyq/quant/` | El núcleo: GPTQ, AWQ, búsqueda de escala, empaquetado de bits. |
-| `src/tinyq/export/` | Escribir el modelo en disco: formato `.tq` propio y GGUF. |
-| `src/tinyq/` | Calibración, evaluación, sensibilidad de capas y la CLI. |
+| `src/octuma/quant/` | El núcleo: GPTQ, AWQ, búsqueda de escala, empaquetado de bits. |
+| `src/octuma/export/` | Escribir el modelo en disco: formato `.tq` propio y GGUF. |
+| `src/octuma/` | Calibración, evaluación, sensibilidad de capas y la CLI. |
 | `tests/` | Pruebas. Sin red, sin GPU, sin modelos reales. |
 | `scripts/` | Andamiaje de experimentos e infraestructura. **No es parte del paquete**; ver `scripts/README.md`. |
 | `experiments/` | Las matrices de experimentos en YAML. |
@@ -65,19 +65,19 @@ que falle ruidosamente a que produzca un modelo degradado.
 
 **2. Lo que está medido como mejor es lo que debe pasar por defecto.**
 
-Los valores por defecto de `tinyq quantize` son la configuración que gana en
+Los valores por defecto de `octuma quantize` son la configuración que gana en
 el barrido (`runs/COMPARATIVA.md`), no una más conservadora. Si cambias un
 valor por defecto, tienes que poder señalar la corrida que lo respalda.
 `tests/test_cli.py` los fija justamente para que no se separen de lo medido.
 
 ## Al tocar la cuantización
 
-Cualquier cambio en `src/tinyq/quant/` puede degradar la calidad sin romper un
+Cualquier cambio en `src/octuma/quant/` puede degradar la calidad sin romper un
 solo test. Antes de abrir el PR, mide con un modelo pequeño:
 
 ```bash
-tinyq quantize Qwen/Qwen2.5-0.5B-Instruct
-tinyq compare qwen2.5-0.5b-instruct-int4 --windows 20
+octuma quantize Qwen/Qwen2.5-0.5B-Instruct
+octuma compare qwen2.5-0.5b-instruct-int4 --windows 20
 ```
 
 Pon el antes y el después en la descripción del PR. Un cambio que mejora la
@@ -90,7 +90,7 @@ Los tests no detectan un GGUF corrupto: los pesos pueden estar perfectos y el
 archivo salir roto por los metadatos. Verifícalo siempre:
 
 ```bash
-tinyq export <carpeta-tq> --out modelo.gguf
+octuma export <carpeta-tq> --out modelo.gguf
 python scripts/verify_gguf.py <carpeta-tq> modelo.gguf
 ```
 
