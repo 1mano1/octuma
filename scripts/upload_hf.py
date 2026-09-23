@@ -1,6 +1,6 @@
 """Publica un modelo cuantizado en Hugging Face con su ficha tecnica.
 
-    python scripts/upload_hf.py out/qwen05b-g32 --repo 1mano1/Qwen2.5-0.5B-TinyQ-INT4 \
+    python scripts/upload_hf.py out/qwen05b-g32 --repo 1mano1/Qwen2.5-0.5B-Octuma-INT4 \
         --gguf out/qwen05b-int4.gguf --run runs/qwen0.5b__cal8k-gptq-awq-int4__w4s512.json
 
 El token se lee de HF_TOKEN (entorno o .env) y nunca se imprime.

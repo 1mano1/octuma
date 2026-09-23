@@ -149,10 +149,16 @@ mismo. `octuma` estaba libre el 2026-09-22 (PyPI responde 404), asi que ahora
 Esto **no reserva el nombre**: nadie lo tiene hasta que se suba a PyPI. Si el
 proyecto se va a abrir, conviene registrarlo antes de anunciarlo.
 
-El repo de GitHub tambien se renombro (`1mano1/TinyQ` -> `1mano1/octuma`).
-**GitHub deja una redireccion 301 desde el nombre viejo**, asi que los clones
-que ya existan siguen funcionando; aun asi, el `remote` de esta copia ya apunta
-al nombre nuevo.
+Los repos tambien se renombraron el mismo dia: `1mano1/TinyQ` -> `1mano1/octuma`
+en GitHub, y los tres modelos de Hugging Face a `Imanol11/qwen*-int4-Octuma`.
+**Las dos plataformas dejan redireccion desde el nombre viejo** (GitHub un 301;
+Hugging Face lo dice en su propia pagina de ajustes, y cubre tambien git), asi
+que nada de lo que ya existiera se rompe. Aun asi, el `remote` de esta copia ya
+apunta al nombre nuevo.
+
+Renombrar se hace **desde la web**, no desde la terminal: es un campo de texto
+en los ajustes del repo. No hace falta ningun token, y ahorra el enredo de
+crear uno de escritura para un cambio de tres minutos.
 
 **Lo que NO se renombro, a proposito:** el formato **`.tq`**
 (`model.tq.safetensors`). Vive dentro de los tres modelos ya publicados:
@@ -273,9 +279,9 @@ pero hay que tocar el motor y reprobarlo en un modelo chico).
 Privados en Hugging Face, cada uno con carpeta `.tq`, `.gguf` y el `LICENSE`
 del modelo base:
 
-- `Imanol11/qwen0.5b-int4-TinyQ` (1.02 GB) — Apache 2.0
-- `Imanol11/qwen1.5b-int4-TinyQ` (2.58 GB) — Apache 2.0
-- `Imanol11/qwen3b-int4-TinyQ` (4.68 GB) — **Qwen Research, no comercial**
+- `Imanol11/qwen0.5b-int4-Octuma` (1.02 GB) — Apache 2.0
+- `Imanol11/qwen1.5b-int4-Octuma` (2.58 GB) — Apache 2.0
+- `Imanol11/qwen3b-int4-Octuma` (4.68 GB) — **Qwen Research, no comercial**
   (lleva ademas `NOTICE`)
 
 No hay 7B publicado. Los publica el autor cuando decida, no antes.
@@ -428,7 +434,7 @@ Para recuperar un modelo hay dos caminos:
 
 ```bash
 # 1) bajarlo de Hugging Face (privados: hace falta el token del autor)
-hf download Imanol11/qwen3b-int4-TinyQ --local-dir out/qwen3b   # huggingface-cli ya no existe
+hf download Imanol11/qwen3b-int4-Octuma --local-dir out/qwen3b   # huggingface-cli ya no existe
 
 # 2) volver a cuantizarlo desde cero (mas lento, pero no depende de nada)
 octuma quantize Qwen/Qwen2.5-3B-Instruct

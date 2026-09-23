@@ -22,7 +22,7 @@ te avisa **antes de descargar nada** si el modelo no va a caber en tu memoria.
 > **El proyecto se llamaba TinyQ** y se renombro a Octuma el 2026-09-22, para
 > compartir nombre con la app Android que corre estos modelos. Lo que se
 > instala, lo que se importa y el comando de la terminal son los tres `octuma`.
-> Los repos de los modelos en Hugging Face todavia llevan el nombre viejo.
+> Los enlaces viejos, tanto de GitHub como de Hugging Face, redirigen solos.
 
 ## Instalacion
 
@@ -50,9 +50,9 @@ Tres modelos de la familia Qwen2.5 ya cuantizados, cada uno con la carpeta
 
 | Modelo | Tamaño INT4 | Perplejidad | vs original | Licencia del original |
 |---|---|---|---|---|
-| [qwen0.5b-int4-TinyQ](https://huggingface.co/Imanol11/qwen0.5b-int4-TinyQ) | 0.52 GB | 12.710 | +3.73% | Apache 2.0 |
-| [qwen1.5b-int4-TinyQ](https://huggingface.co/Imanol11/qwen1.5b-int4-TinyQ) | 1.32 GB | 8.486 | +2.11% | Apache 2.0 |
-| [qwen3b-int4-TinyQ](https://huggingface.co/Imanol11/qwen3b-int4-TinyQ) | 2.40 GB | 7.512 | +2.43% | **Qwen Research (no comercial)** |
+| [qwen0.5b-int4-Octuma](https://huggingface.co/Imanol11/qwen0.5b-int4-Octuma) | 0.52 GB | 12.710 | +3.73% | Apache 2.0 |
+| [qwen1.5b-int4-Octuma](https://huggingface.co/Imanol11/qwen1.5b-int4-Octuma) | 1.32 GB | 8.486 | +2.11% | Apache 2.0 |
+| [qwen3b-int4-Octuma](https://huggingface.co/Imanol11/qwen3b-int4-Octuma) | 2.40 GB | 7.512 | +2.43% | **Qwen Research (no comercial)** |
 
 > **El 3B no se puede usar comercialmente.** A diferencia del resto de la
 > familia, [`Qwen2.5-3B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-3B-Instruct)
@@ -62,7 +62,7 @@ Tres modelos de la familia Qwen2.5 ya cuantizados, cada uno con la carpeta
 > [7B](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct) tambien.
 
 ```bash
-hf download Imanol11/qwen3b-int4-TinyQ --local-dir qwen3b
+hf download Imanol11/qwen3b-int4-Octuma --local-dir qwen3b
 llama-cli -m qwen3b/qwen3b-int4.gguf -p "Hola"
 ```
 
