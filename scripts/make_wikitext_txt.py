@@ -1,8 +1,8 @@
 """Escribe el wikitext-2 test como texto plano para `llama-perplexity`.
 
-El evaluador de Python (`tinyq.evaluate.wikitext2_ids`) une el split con
+El evaluador de Python (`octuma.evaluate.wikitext2_ids`) une el split con
 "\\n\\n". Este script hace exactamente lo mismo en un .txt, que es la unica
-forma de que el numero de llama.cpp y el de TinyQ midan sobre el mismo texto.
+forma de que el numero de llama.cpp y el de Octuma midan sobre el mismo texto.
 
     python scripts/make_wikitext_txt.py --out out/wikitext2.txt
 """
@@ -21,7 +21,7 @@ def main() -> None:
 
     from datasets import load_dataset
 
-    from tinyq.calibrate import WIKITEXT_REPO
+    from octuma.calibrate import WIKITEXT_REPO
 
     ds = load_dataset(WIKITEXT_REPO, "wikitext-2-raw-v1", split=args.split)
     texto = "\n\n".join(ds["text"])

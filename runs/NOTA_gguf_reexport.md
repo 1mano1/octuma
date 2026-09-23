@@ -47,7 +47,7 @@ Las mediciones del 3B de la otra maquina se reprodujeron aqui dentro del 0.3%:
 | 3B arreglado | 7.492 | 7.5118 | 0.26% |
 
 Eso valida `scripts/make_wikitext_txt.py`, que genera el `.txt` uniendo el
-split con `\n\n` igual que `tinyq.evaluate.wikitext2_ids`. Sin ese script la
+split con `\n\n` igual que `octuma.evaluate.wikitext2_ids`. Sin ese script la
 medicion de GGUF no era repetible: el corpus se armaba a mano.
 
 Con GPU cada medicion tarda **8-18 segundos**. En CPU eran horas, que es la
@@ -57,7 +57,7 @@ razon por la que esto llevaba pendiente desde el arreglo.
 
 ```bash
 python scripts/make_wikitext_txt.py --out out/wikitext2.txt
-tinyq export out/qwen3b-tq --out out/qwen3b-int4-fix.gguf
+octuma export out/qwen3b-tq --out out/qwen3b-int4-fix.gguf
 python scripts/verify_gguf.py out/qwen3b-tq out/qwen3b-int4-fix.gguf
 llama-perplexity -m out/qwen3b-int4-fix.gguf -f out/wikitext2.txt \
     -c 2048 --chunks 20 -ngl 99

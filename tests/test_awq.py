@@ -1,13 +1,13 @@
 import torch
 
-from tinyq.quant.awq import (
+from octuma.quant.awq import (
     ScalingGroup,
     apply_scales,
     awq_scale_block,
     llama_like_groups,
     search_scales,
 )
-from tinyq.quant.core import quantize_tensor
+from octuma.quant.core import quantize_tensor
 
 from .test_pipeline import tiny_llama
 

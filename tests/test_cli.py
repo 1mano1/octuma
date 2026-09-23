@@ -1,8 +1,8 @@
-"""La CLI es lo primero que toca quien instala TinyQ: sus defaults importan."""
+"""La CLI es lo primero que toca quien instala Octuma: sus defaults importan."""
 
 import inspect
 
-from tinyq import cli
+from octuma import cli
 
 
 def _defaults(fn) -> dict:
@@ -17,7 +17,7 @@ def _defaults(fn) -> dict:
 def test_quantize_usa_la_configuracion_ganadora():
     """Los defaults deben ser lo que gana en el barrido, no algo peor.
 
-    Durante meses `tinyq quantize` venia con AWQ apagado y calibracion 64x512,
+    Durante meses `octuma quantize` venia con AWQ apagado y calibracion 64x512,
     mientras la tabla del README se midio con AWQ y 128x2048: quien corria el
     comando obvio sacaba resultados peores que los publicados.
     """

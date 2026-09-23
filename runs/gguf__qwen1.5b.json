@@ -19,9 +19,9 @@
       "compresion": 1.0
     },
     {
-      "etiqueta": "TinyQ INT4",
+      "etiqueta": "Octuma INT4",
       "gguf": "out\\qwen15b-int4-fix.gguf",
-      "familia": "tinyq",
+      "familia": "octuma",
       "ppl": 8.4864,
       "bytes": 1321319872,
       "dano_pct": 2.1092274187532345,

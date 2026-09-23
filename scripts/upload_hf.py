@@ -64,7 +64,7 @@ llama-cli -m {Path(gguf).name} -p "Hola"
 base_model: {base}
 license: apache-2.0
 tags:
-  - tinyq
+  - octuma
   - quantized
   - int{bits}
   - gguf
@@ -72,7 +72,7 @@ tags:
 
 # {repo.split('/')[-1]}
 
-`{base}` cuantizado a **INT{bits}** con [TinyQ](https://github.com/1mano1/TinyQ),
+`{base}` cuantizado a **INT{bits}** con [Octuma](https://github.com/1mano1/TinyQ),
 usando **{method}** con grupos de {group} pesos.
 
 Calibrado con {meta.get('calibration', 'wikitext-2')}.
@@ -81,7 +81,7 @@ Calibrado con {meta.get('calibration', 'wikitext-2')}.
 
 ```python
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
-from tinyq.export.tq import load_quantized
+from octuma.export.tq import load_quantized
 from huggingface_hub import snapshot_download
 
 ruta = snapshot_download("{repo}")
@@ -93,11 +93,11 @@ tok = AutoTokenizer.from_pretrained(ruta)
 ## Como se hizo
 
 ```bash
-tinyq quantize {base} --out salida --bits {bits} --group {group}{' --awq' if cfg.get('awq') else ''}
-tinyq export salida --out modelo-int{bits}.gguf
+octuma quantize {base} --out salida --bits {bits} --group {group}{' --awq' if cfg.get('awq') else ''}
+octuma export salida --out modelo-int{bits}.gguf
 ```
 
-TinyQ cuantiza por grupos con punto cero, reparte el error de redondeo entre
+Octuma cuantiza por grupos con punto cero, reparte el error de redondeo entre
 las columnas pendientes (GPTQ) y escala los canales segun su importancia en las
 activaciones (AWQ). El detalle completo esta en el repositorio.
 """
@@ -116,7 +116,7 @@ def main() -> None:
 
     token = load_token()
     d = Path(args.model_dir)
-    meta = json.loads((d / "tinyq.json").read_text(encoding="utf-8"))
+    meta = json.loads((d / "octuma.json").read_text(encoding="utf-8"))
     run = json.loads(Path(args.run).read_text(encoding="utf-8")) if args.run else None
 
     api = HfApi(token=token)
@@ -129,7 +129,7 @@ def main() -> None:
     api.upload_folder(
         folder_path=str(d),
         repo_id=args.repo,
-        commit_message="Modelo cuantizado con TinyQ",
+        commit_message="Modelo cuantizado con Octuma",
     )
     if args.gguf:
         print(f"Subiendo {args.gguf}")

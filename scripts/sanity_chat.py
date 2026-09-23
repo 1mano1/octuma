@@ -65,14 +65,14 @@ def responder(model, tok, pregunta: str, max_new: int = 120) -> tuple[str, float
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="Qwen/Qwen2.5-3B-Instruct")
-    ap.add_argument("--quant", required=True, help="carpeta .tq de TinyQ")
+    ap.add_argument("--quant", required=True, help="carpeta .tq de Octuma")
     ap.add_argument("--short", default="qwen3b")
     ap.add_argument("--max-new", type=int, default=120)
     args = ap.parse_args()
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
-    from tinyq.export.tq import load_quantized
+    from octuma.export.tq import load_quantized
 
     tok = AutoTokenizer.from_pretrained(args.model, use_fast=True)
 
