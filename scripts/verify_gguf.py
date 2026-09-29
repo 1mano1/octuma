@@ -116,7 +116,8 @@ def main() -> None:
         if name not in expected:
             continue
         data = gguf.quants.dequantize(t.data, t.tensor_type)
-        got = torch.from_numpy(np.ascontiguousarray(data)).float()
+        # np.array copia: el GGUF se lee en solo lectura y torch avisa si no
+        got = torch.from_numpy(np.array(data)).float()
         ref = expected[name].cpu()
         if got.shape != ref.shape:
             rows.append((name, float("inf"), f"forma {tuple(got.shape)} vs {tuple(ref.shape)}"))
