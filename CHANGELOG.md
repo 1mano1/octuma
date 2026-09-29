@@ -1,5 +1,15 @@
 # Cambios
 
+## Sin publicar
+
+- **El pulpo de Octuma sale en la terminal** la primera vez que se usa `octuma`
+  despues de instalar o actualizar ("actualizado: 0.1.2 -> 0.1.3"), y siempre
+  con `octuma --version`. No puede salir durante el `pip install`: pip no
+  ejecuta codigo del paquete al instalar un wheel. Solo se dibuja en una
+  terminal de verdad, asi que la salida de scripts y CI no cambia, y
+  `OCTUMA_NO_LOGO=1` lo apaga. La ultima version vista se anota en
+  `%APPDATA%/octuma` (Windows) o `~/.config/octuma`.
+
 ## 0.1.3 — 2026-09-23
 
 - **`octuma quantize` ya no se queda sin memoria cuantizando con AWQ.** El hook
