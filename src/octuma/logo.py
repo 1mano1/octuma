@@ -111,9 +111,9 @@ def saludar_si_es_nueva(console: Console) -> None:
         return
 
     if anterior:
-        dibujar(console, f"actualizado: {anterior} -> {__version__}")
+        dibujar(console, f"updated: {anterior} -> {__version__}")
     else:
-        dibujar(console, f"{__version__} instalado", "Empieza con: octuma quantize <modelo>")
+        dibujar(console, f"{__version__} installed", "Get started: octuma quantize <model>")
     anotar_version()
 
 

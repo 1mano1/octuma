@@ -13,6 +13,7 @@ El token se lee de HF_TOKEN (entorno o .env) y nunca se imprime.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 
@@ -301,18 +302,24 @@ def main() -> None:
         raise SystemExit(f"no se pudo subir {remoto} a {repo}")
 
     # Idempotente: si el Hub ya tiene este mismo archivo, no repetir gigabytes.
+    # Se compara el SHA-256 y no el tamaño: arreglar un metadato (file_type)
+    # deja el archivo del mismo tamaño, y por tamaño nunca se habria resubido.
     en_hub = {
-        s.rfilename: s.size
+        s.rfilename: (s.lfs.sha256 if s.lfs else None)
         for s in api.model_info(repo, files_metadata=True).siblings
     }
-    if en_hub.get(gguf_nombre) == gguf_local.stat().st_size:
-        print(f"{gguf_nombre} ya esta arriba con el mismo tamaño, no lo resubo")
+    h = hashlib.sha256()
+    with gguf_local.open("rb") as f:
+        for trozo in iter(lambda: f.read(1 << 20), b""):
+            h.update(trozo)
+    if en_hub.get(gguf_nombre) == h.hexdigest():
+        print(f"{gguf_nombre} ya esta arriba identico, no lo resubo")
     else:
         print(f"subiendo {gguf_local.name} ({gguf_local.stat().st_size / 1e9:.2f} GB) -> {repo}")
         subir(
             str(gguf_local),
             gguf_nombre,
-            "GGUF re-exportado: arregla rope_theta, pre-tokenizador y eos_token_id",
+            "GGUF re-exportado: declara Q4_1 en general.file_type (antes decia F16)",
         )
 
     # La licencia del original viaja con los pesos derivados: Apache 2.0 §4(a) y

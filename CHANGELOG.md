@@ -1,9 +1,9 @@
 # Cambios
 
-## Sin publicar
+## 0.1.4 — 2026-09-29
 
 - **El pulpo de Octuma sale en la terminal** la primera vez que se usa `octuma`
-  despues de instalar o actualizar ("actualizado: 0.1.2 -> 0.1.3"), y siempre
+  despues de instalar o actualizar ("updated: 0.1.3 -> 0.1.4", en ingles), y siempre
   con `octuma --version`. No puede salir durante el `pip install`: pip no
   ejecuta codigo del paquete al instalar un wheel. Solo se dibuja en una
   terminal de verdad, asi que la salida de scripts y CI no cambia, y
