@@ -38,7 +38,7 @@ def perplexity(
     if max_windows:
         n = min(n, max_windows)
     if n == 0:
-        raise ValueError("el texto es mas corto que una ventana")
+        raise ValueError("the text is shorter than one window")
 
     nll_sum = torch.tensor(0.0, dtype=torch.float64)
     n_tokens = 0
@@ -57,7 +57,7 @@ def perplexity(
         nll_sum += loss.double().cpu()
         n_tokens += shift_labels.numel()
         if progress:
-            progress(f"ventana {i + 1}/{n} · ppl parcial {torch.exp(nll_sum / n_tokens):.3f}")
+            progress(f"window {i + 1}/{n} · partial ppl {torch.exp(nll_sum / n_tokens):.3f}")
 
     ppl = torch.exp(nll_sum / n_tokens).item()
     return PerplexityResult(

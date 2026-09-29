@@ -124,7 +124,7 @@ def load_quantized(model: nn.Module, in_dir: str | Path, device: str = "cpu") ->
 
     missing, unexpected = model.load_state_dict(dense, strict=False)
     if unexpected:
-        raise RuntimeError(f"tensores inesperados en el archivo: {unexpected[:5]}")
+        raise RuntimeError(f"unexpected tensors in the file: {unexpected[:5]}")
     return model
 
 

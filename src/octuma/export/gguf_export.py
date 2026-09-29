@@ -67,7 +67,7 @@ def _arch_for(model_type: str) -> str:
     known = {"llama": "llama", "qwen2": "qwen2", "mistral": "llama", "gemma": "gemma"}
     if model_type not in known:
         raise ValueError(
-            f"arquitectura '{model_type}' no soportada todavia en el exportador GGUF"
+            f"architecture '{model_type}' is not supported by the GGUF exporter yet"
         )
     return known[model_type]
 
@@ -89,9 +89,9 @@ def _rope_theta(cfg: Any) -> float:
         theta = params.get("rope_theta") or params.get("theta")
     if theta is None:
         raise ValueError(
-            "no se encontro rope_theta en la configuracion del modelo. "
-            "Escribir un valor por defecto corrompe la atencion en silencio: "
-            "revisa config.json (en transformers 5 esta en 'rope_parameters')."
+            "rope_theta not found in the model config. "
+            "Writing a default value silently corrupts attention: "
+            "check config.json (in transformers 5 it lives in 'rope_parameters')."
         )
     return float(theta)
 def _write_metadata(writer, cfg: Any, arch: str, name: str) -> None:
@@ -120,7 +120,7 @@ def _write_vocab(writer, model_dir: Path, n_vocab: int = 0, arch: str = "") -> N
     tok_path = model_dir / "tokenizer.json"
     if not tok_path.exists():
         raise FileNotFoundError(
-            f"falta {tok_path}: exporta primero el tokenizer con octuma quantize"
+            f"missing {tok_path}: export the tokenizer first with octuma quantize"
         )
     data = json.loads(tok_path.read_text(encoding="utf-8"))
     vocab: dict[str, int] = data["model"]["vocab"]
@@ -223,7 +223,7 @@ def export_gguf(
     bad = [n for n, m in qlayers.items() if m.group_size != QK or m.bits != 4]
     if bad:
         raise ValueError(
-            "GGUF Q4_1 requiere --bits 4 --group 32; capas incompatibles: "
+            "GGUF Q4_1 needs --bits 4 --group 32; incompatible layers: "
             + ", ".join(bad[:3])
         )
 
@@ -240,7 +240,7 @@ def export_gguf(
     for hf_name, module in qlayers.items():
         gg = name_map.get_name(hf_name)
         if gg is None:
-            raise ValueError(f"no se encontro el nombre GGUF para {hf_name}")
+            raise ValueError(f"no GGUF name found for {hf_name}")
         q = unpack_bits(module.qweight, module.bits, module.in_features)
         data = _q4_1_blocks(q, module.scales, module.zeros)
         writer.add_tensor(

@@ -37,7 +37,7 @@ def _grouped(w: torch.Tensor, group_size: int) -> torch.Tensor:
     out_features, in_features = w.shape
     if in_features % group_size:
         raise ValueError(
-            f"in_features={in_features} no es multiplo de group_size={group_size}"
+            f"in_features={in_features} is not a multiple of group_size={group_size}"
         )
     return w.reshape(out_features, in_features // group_size, group_size)
 
@@ -50,7 +50,7 @@ def quantize_groupwise(
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Devuelve (q, scales, zeros) con q en [0, 2**bits - 1] y forma igual a w."""
     if bits not in SUPPORTED_BITS:
-        raise ValueError(f"bits={bits} no soportado, usa {SUPPORTED_BITS}")
+        raise ValueError(f"bits={bits} not supported, use {SUPPORTED_BITS}")
     if group_size <= 0:
         group_size = w.shape[1]
 
@@ -92,12 +92,12 @@ def pack_bits(q: torch.Tensor, bits: int) -> torch.Tensor:
     if bits == 8:
         return q.contiguous().to(torch.uint8)
     if 8 % bits:
-        raise ValueError(f"bits={bits} no divide a 8; usa 2, 4 u 8")
+        raise ValueError(f"bits={bits} does not divide 8; use 2, 4 or 8")
 
     per_byte = 8 // bits
     out_features, in_features = q.shape
     if in_features % per_byte:
-        raise ValueError(f"in_features={in_features} no es multiplo de {per_byte}")
+        raise ValueError(f"in_features={in_features} is not a multiple of {per_byte}")
 
     v = q.to(torch.uint8).reshape(out_features, in_features // per_byte, per_byte)
     packed = torch.zeros(v.shape[:2], dtype=torch.uint8, device=q.device)
