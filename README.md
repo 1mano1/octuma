@@ -1,5 +1,7 @@
 # Octuma
 
+**Español** · [English](https://github.com/1mano1/octuma/blob/main/README.en.md)
+
 Cuantizacion INT4/INT8 de modelos de lenguaje, pensada para que corran en
 laptops modestas, servidores chicos y telefonos Android.
 
@@ -54,11 +56,64 @@ en otro indice y hay que pedirlo antes, o `octuma quantize` correra en CPU sin
 decir nada.
 
 ```bash
-pip install torch --index-url https://download.pytorch.org/whl/cu121
+pip install torch --index-url https://download.pytorch.org/whl/cu126
 pip install "octuma[hf,gguf]"     # respeta el torch que ya esta
 ```
 
+`cu126` tiene PyTorch para Python 3.10 a 3.14. Si sale `No matching
+distribution found for torch`, casi siempre es que ese indice no tiene tu
+version de Python: el viejo `cu121`, por ejemplo, llega solo hasta la 3.12.
+
 En CPU funciona igual, solo mas lento.
+
+## Pruebalo en tu PC
+
+Todo queda dentro de una carpeta y al final se borra. Los comandos son de
+PowerShell; en Linux o macOS el entorno se activa con `source .venv/bin/activate`.
+
+```powershell
+mkdir C:\prueba-octuma
+cd C:\prueba-octuma
+Set-ExecutionPolicy -Scope Process Bypass   # deja activar el entorno, solo en esta terminal
+py -m venv .venv                            # con varios Python: py -3.10 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+# solo con GPU NVIDIA, y antes de instalar Octuma
+pip install torch --index-url https://download.pytorch.org/whl/cu126
+
+pip install "octuma[hf,gguf]"
+octuma --version
+```
+
+No hace falta tener un modelo: `quantize` lo baja de Hugging Face. El Qwen2.5
+0.5B pesa ~1 GB y no pide cuenta.
+
+```powershell
+# en CPU, calibracion corta para no esperar horas
+octuma quantize Qwen/Qwen2.5-0.5B-Instruct --samples 32 --seqlen 512 --out qwen05b
+# con GPU, la configuracion completa
+octuma quantize Qwen/Qwen2.5-0.5B-Instruct --out qwen05b
+
+octuma compare qwen05b --windows 5 --seqlen 512   # version corta de la comparacion
+octuma try qwen05b -p "What is the capital of Australia?"
+octuma export qwen05b --out qwen05b.gguf
+```
+
+La prueba corta sirve para ver que todo funciona, pero sus numeros no se
+comparan con las tablas de abajo, que usan 128 ventanas de 2048 tokens. En CPU,
+`compare` pasa varios minutos sin imprimir nada mientras mide: no esta trabado.
+
+Para borrar todo al terminar:
+
+```powershell
+deactivate
+cd C:\
+Remove-Item -Recurse -Force C:\prueba-octuma
+Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\huggingface\hub\models--Qwen--Qwen2.5-0.5B-Instruct"
+Remove-Item -Recurse -Force "$env:APPDATA\octuma"   # la marca del pulpo
+```
+
+Los datos de wikitext tambien quedan en `.cache\huggingface\hub\datasets--*`.
 
 ## Modelos listos para usar
 
@@ -334,7 +389,7 @@ Detalle en [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md).
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # 60 pruebas, segundos en CPU
+pytest -q          # 74 pruebas, segundos en CPU
 ruff check .
 ```
 
