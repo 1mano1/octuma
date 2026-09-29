@@ -9,6 +9,11 @@
   terminal de verdad, asi que la salida de scripts y CI no cambia, y
   `OCTUMA_NO_LOGO=1` lo apaga. La ultima version vista se anota en
   `%APPDATA%/octuma` (Windows) o `~/.config/octuma`.
+- **El GGUF se anunciaba como F16 siendo Q4_1.** `general.file_type` estaba
+  fijo en `MOSTLY_F16`, y es lo que muestran llama.cpp (`ftype : F16`) y el
+  visor de Hugging Face. No afectaba la calidad, porque cada tensor lleva su
+  propio tipo, pero los tres modelos publicados dicen F16. Se corrige al
+  re-exportarlos; no hace falta recuantizar.
 
 ## 0.1.3 — 2026-09-23
 
