@@ -25,7 +25,7 @@ def test_sale_una_sola_vez_por_version(monkeypatch, tmp_path):
     c = _consola()
     logo.saludar_si_es_nueva(c)
     primera = c.export_text()
-    assert "█" in primera and "instalado" in primera
+    assert "█" in primera and "installed" in primera
 
     logo.saludar_si_es_nueva(c)
     assert c.export_text() == "", "la segunda vez ya no se dibuja"
