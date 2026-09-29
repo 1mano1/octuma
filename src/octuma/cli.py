@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from . import __version__
+from .logo import anotar_version, dibujar, saludar_si_es_nueva, terminal_interactiva
 
 app = typer.Typer(
     add_completion=False,
@@ -18,9 +19,18 @@ app = typer.Typer(
 console = Console()
 
 
+def _imprimir_version() -> None:
+    # en una tuberia sale solo la linea, para que la puedan leer los scripts
+    if terminal_interactiva():
+        dibujar(console, __version__)
+        anotar_version()
+    else:
+        console.print(f"Octuma {__version__}")
+
+
 def _mostrar_version(pedida: bool) -> None:
     if pedida:
-        console.print(f"Octuma {__version__}")
+        _imprimir_version()
         raise typer.Exit()
 
 
@@ -39,7 +49,10 @@ def _principal(
 
     El subcomando `octuma version` hace lo mismo y se queda por compatibilidad,
     pero lo que la gente teclea sin pensar es `--version`.
+
+    Tambien dibuja el pulpo la primera vez que se usa una version nueva.
     """
+    saludar_si_es_nueva(console)
 
 
 def _load_model(model_id: str, device: str, dtype: str = "float32"):
@@ -188,7 +201,7 @@ def _avisar_memoria(model: str, device: str) -> None:
 @app.command()
 def version() -> None:
     """Muestra la version instalada."""
-    console.print(f"Octuma {__version__}")
+    _imprimir_version()
 
 
 @app.command()
