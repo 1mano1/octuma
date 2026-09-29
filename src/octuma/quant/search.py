@@ -84,7 +84,7 @@ def quantize_groupwise_searched(
         group_size = in_features
     if in_features % group_size:
         raise ValueError(
-            f"in_features={in_features} no es multiplo de group_size={group_size}"
+            f"in_features={in_features} is not a multiple of group_size={group_size}"
         )
 
     qmax = (1 << bits) - 1

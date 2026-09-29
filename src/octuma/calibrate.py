@@ -45,7 +45,7 @@ def build_from_texts(
     ids = tokenizer(joined, return_tensors="pt").input_ids[0]
     if ids.numel() < seq_len + 1:
         raise ValueError(
-            f"el corpus tiene {ids.numel()} tokens, se necesitan al menos {seq_len + 1}"
+            f"the corpus has {ids.numel()} tokens, at least {seq_len + 1} are needed"
         )
 
     gen = torch.Generator().manual_seed(seed)
@@ -126,4 +126,4 @@ def load_calibration(
             seed=seed,
             source=str(path),
         )
-    raise ValueError(f"no se reconoce el dataset de calibracion: {name}")
+    raise ValueError(f"unknown calibration dataset: {name}")

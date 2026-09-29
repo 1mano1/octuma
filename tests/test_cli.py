@@ -95,7 +95,7 @@ def test_leer_meta_dice_que_la_carpeta_no_existe(tmp_path):
     with pytest.raises(typer.BadParameter) as e:
         cli._leer_meta(tmp_path / "no-existe")
     aviso = str(e.value)
-    assert "no existe" in aviso
+    assert "does not exist" in aviso
     assert "quantize" in aviso, "hay que decirle que revise el paso anterior"
 
 

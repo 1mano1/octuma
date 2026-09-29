@@ -138,7 +138,7 @@ def analyze_sensitivity(
             hidden = out[0] if isinstance(out, tuple) else out
             new_inputs.append(((hidden,) + tuple(args[1:]), kwargs))
         inputs = new_inputs
-        log(f"bloque {idx + 1}/{len(blocks)} analizado")
+        log(f"block {idx + 1}/{len(blocks)} analyzed")
 
     return report
 

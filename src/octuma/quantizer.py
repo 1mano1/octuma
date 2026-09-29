@@ -104,7 +104,7 @@ def find_blocks(model: nn.Module) -> tuple[nn.ModuleList, str]:
         if isinstance(obj, nn.ModuleList) and len(obj) > 0:
             return obj, path
     raise ValueError(
-        "no se encontro la lista de bloques del modelo; agrega su ruta a find_blocks()"
+        "could not find the model's list of blocks; add its path to find_blocks()"
     )
 
 
@@ -170,10 +170,10 @@ def quantize_model(
         model.config.use_cache = False
 
     blocks, path = find_blocks(model)
-    log(f"bloques encontrados en {path}: {len(blocks)}")
+    log(f"blocks found at {path}: {len(blocks)}")
 
     inputs = capture_block_inputs(model, blocks, calib, device)
-    log(f"entradas capturadas: {len(inputs)} lotes")
+    log(f"captured inputs: {len(inputs)} batches")
 
     # GPTQ estima H = X·Xt: con menos tokens que dimensiones la matriz es
     # singular y la compensacion de error se vuelve ruido. Pasa callado y da
@@ -182,9 +182,9 @@ def quantize_model(
         widest = max(m.in_features for m in named_linears(blocks[0]).values())
         if calib.n_tokens < widest:
             log(
-                f"AVISO: {calib.n_tokens} tokens de calibracion para capas de "
-                f"hasta {widest} dimensiones. GPTQ necesita bastantes mas "
-                f"(idealmente 10x) o el resultado sera peor que RTN."
+                f"WARNING: {calib.n_tokens} calibration tokens for layers of "
+                f"up to {widest} dimensions. GPTQ needs many more "
+                f"(ideally 10x) or the result will be worse than RTN."
             )
 
     report = QuantReport()
@@ -319,7 +319,7 @@ def quantize_model(
         mean_rel = sum(
             capa.rel_fro for capa in report.layers if capa.name.startswith(f"blocks.{idx}.")
         ) / max(1, len(linears))
-        log(f"bloque {idx + 1}/{len(blocks)} listo · error medio {mean_rel:.4f}")
+        log(f"block {idx + 1}/{len(blocks)} done · mean error {mean_rel:.4f}")
         gc.collect()
 
     report.seconds = time.perf_counter() - started

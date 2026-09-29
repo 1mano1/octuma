@@ -2,6 +2,11 @@
 
 ## 0.1.4 — 2026-09-29
 
+- **La terminal habla en ingles.** Todo lo que Octuma muestra al usuario
+  (progreso, tablas, avisos, errores y `--help`) paso del español al ingles,
+  para que lo entienda cualquiera que lo instale de PyPI. Las diez preguntas de
+  `octuma try --side-by-side` tambien. El codigo y sus comentarios siguen en
+  español.
 - **El pulpo de Octuma sale en la terminal** la primera vez que se usa `octuma`
   despues de instalar o actualizar ("updated: 0.1.3 -> 0.1.4", en ingles), y siempre
   con `octuma --version`. No puede salir durante el `pip install`: pip no
