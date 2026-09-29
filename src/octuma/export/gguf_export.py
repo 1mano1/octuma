@@ -95,6 +95,8 @@ def _rope_theta(cfg: Any) -> float:
         )
     return float(theta)
 def _write_metadata(writer, cfg: Any, arch: str, name: str) -> None:
+    import gguf
+
     writer.add_name(name)
     writer.add_context_length(getattr(cfg, "max_position_embeddings", 2048))
     writer.add_embedding_length(cfg.hidden_size)
@@ -106,7 +108,10 @@ def _write_metadata(writer, cfg: Any, arch: str, name: str) -> None:
     head_dim = getattr(cfg, "head_dim", cfg.hidden_size // cfg.num_attention_heads)
     writer.add_rope_dimension_count(head_dim)
     writer.add_rope_freq_base(_rope_theta(cfg))
-    writer.add_file_type(1)  # MOSTLY_F16 como base; los tensores llevan su tipo
+    # Es lo que anuncian llama.cpp y el visor de Hugging Face. Estuvo fijo en
+    # MOSTLY_F16 y los modelos Q4_1 se presentaban como F16. export_gguf solo
+    # acepta 4 bits con grupos de 32, asi que siempre es Q4_1.
+    writer.add_file_type(gguf.LlamaFileType.MOSTLY_Q4_1)
     writer.add_quantization_version(2)  # GGML_QNT_VERSION: llama.cpp lo exige
 
 
