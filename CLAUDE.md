@@ -1,7 +1,7 @@
 # CLAUDE.md — Octuma
 
 Notas para retomar el proyecto sin tener que reconstruir el contexto.
-Ultima actualizacion: 2026-09-22.
+Ultima actualizacion: 2026-09-29.
 
 ## Que es
 
@@ -425,6 +425,43 @@ variantes) usaba `from octuma import Quantizer`, una **API que no existe**, y
 ahora usa la real.
 
 Si se vuelven a tocar esos numeros, salen de `runs/COMPARATIVA.md`.
+
+### Segunda pasada (2026-09-29)
+
+La primera correccion se quedo en la pagina de Octuma. **La portada del
+portafolio seguia inventando**: la seccion "Open source" (componente, tres
+estados) decia `pip install tinyq`, `tinyq quantize llama-3-8b`, "×2.8 mas
+rapido" (es 3.4x mas **lento**), ONNX, ★1.2k y 86 forks (eran 2 y 0), y la
+ilustracion del hero "98.6% de precision" y "Pixel 7 · 11 tok/s". La tarjeta
+"droid-llm" (★340) era un repo que no existe. Todo cambiado a datos de `runs/`
+o del README; los contadores de GitHub se **ocultaron**, no se borraron.
+
+Tambien: grupos de 64 -> 32 donde habla de la CLI, version 0.1.4, instalacion
+`pip install "octuma[hf,gguf]"`, y la app es **Octuma App** (Flutter, no
+Kotlin; antes "Lumen"). Donde un numero se midio con grupos de 64, lo dice.
+
+**Hay version en ingles**: `octuma — Desktop · EN` y `octuma — Android Large ·
+EN`, con el componente **Selector de idioma** (ES/EN) que navega entre los dos
+frames. Los tres componentes `Paso 0x` tienen la propiedad `Idioma`, para que el
+texto del hover tambien salga traducido. Si se cambia un texto en español, hay
+que cambiarlo tambien en el frame EN: son copias, no instancias.
+
+## La terminal habla en ingles (0.1.4, 2026-09-29)
+
+Todo lo que ve el usuario —progreso, tablas, avisos, errores, `--help` y las
+diez preguntas de `try --side-by-side`— esta en ingles. **El codigo y sus
+comentarios siguen en español**; solo cambian las cadenas que se imprimen.
+
+El pulpo del logo de la app sale en la terminal (`src/octuma/logo.py`) la
+primera vez que se usa una version nueva y con `--version`. pip no ejecuta
+codigo al instalar, asi que no puede salir durante el `pip install`. Solo se
+dibuja si la salida es una terminal; `OCTUMA_NO_LOGO=1` lo apaga.
+
+El GGUF declaraba `general.file_type = MOSTLY_F16` siendo Q4_1: llama.cpp
+mostraba `ftype : F16`. Arreglado en 0.1.4, pero **los tres `.gguf` de Hugging
+Face siguen diciendo F16** hasta re-exportarlos y resubirlos (no hace falta
+recuantizar). `publicar_gguf.py` compara ahora por SHA-256: por tamaño nunca
+los habria resubido, porque el archivo arreglado pesa lo mismo.
 
 ## Estructura y calidad (2026-09-20)
 
