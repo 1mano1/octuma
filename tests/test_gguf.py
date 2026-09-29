@@ -160,3 +160,15 @@ def test_pre_tokenizador_por_arquitectura(tmp_path):
 
     reader = gguf.GGUFReader(str(out))
     assert reader.fields["tokenizer.ggml.pre"].contents() == "llama-bpe"
+
+
+def test_el_tipo_de_archivo_dice_q4_1(tmp_path):
+    """llama.cpp y Hugging Face muestran este campo. Estuvo fijo en F16 y los
+    modelos Q4_1 publicados se anunciaban como F16."""
+    model = tiny_llama()
+    quantize_model(model, calib(), QuantConfig(bits=4, group_size=32))
+    _fake_tokenizer_json(tmp_path)
+    out = export_gguf(model, tmp_path / "ftype.gguf", tmp_path)
+
+    reader = gguf.GGUFReader(str(out))
+    assert reader.fields["general.file_type"].contents() == gguf.LlamaFileType.MOSTLY_Q4_1
