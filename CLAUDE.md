@@ -338,6 +338,13 @@ pesos no se deshace.
 5. Rediseñar la CLI y la documentacion segun `docs/PLAN_CLI.md`.
 6. ~~Decidir nombre de la app~~ **HECHO (2026-09-22)**: se llama **Octuma**,
    igual que esta libreria, y `octuma` ya esta registrado en PyPI.
+7. **Re-exportar y resubir los tres `.gguf` de Hugging Face** para que declaren
+   Q4_1 y no F16 (ver "La terminal habla en ingles"). Hace falta iniciar
+   sesion con `hf auth login` y un token de escritura. No hace falta
+   recuantizar: bajar las carpetas `.tq`, `octuma export`, `verify_gguf.py` y
+   `scripts/publicar_gguf.py <slug>`.
+8. El README de PyPI se actualiza hasta la proxima version: la 0.1.4 salio con
+   el README anterior a la seccion "Pruebalo en tu PC" y al enlace al ingles.
 
 ## Entorno local (Windows)
 
@@ -462,6 +469,32 @@ mostraba `ftype : F16`. Arreglado en 0.1.4, pero **los tres `.gguf` de Hugging
 Face siguen diciendo F16** hasta re-exportarlos y resubirlos (no hace falta
 recuantizar). `publicar_gguf.py` compara ahora por SHA-256: por tamaño nunca
 los habria resubido, porque el archivo arreglado pesa lo mismo.
+
+### README, sitio y historial (2026-09-29)
+
+- **README bilingue**: `README.md` (español) y `README.en.md` (ingles), con un
+  enlace "Español · English" arriba de cada uno. La seccion "Pruebalo en tu
+  PC" tiene dos bloques completos, solo CPU (calibracion corta) y con GPU
+  NVIDIA, mas como borrar todo al final. El indice de PyTorch es `cu126`:
+  `cu121` llega solo hasta Python 3.12 y en 3.13/3.14 pip responde "No
+  matching distribution found for torch".
+- **Probado de punta a punta en CPU** con Qwen2.5 0.5B y la calibracion corta
+  (32 x 512): original 13.821 (igual que el barrido), cuantizado +3.6%, 3.37x,
+  GGUF de 0.52 GB, `verify_gguf.py` correcto y llama-cli responde a 54 tok/s.
+  Esos numeros no van a tablas: calibracion y tamaño de grupo distintos.
+- **Portafolio** (`C:/1mano1.github.io`, publicado en 1mano1.github.io): todo
+  el sitio tiene boton ES | EN (`src/lib/idioma.js`, `ProveedorIdioma.jsx`,
+  `secciones/SelectorIdioma.jsx`); la version de Octuma que muestra vive solo
+  en `src/data/octuma.js`. Al publicar una version nueva se cambia ahi.
+  Enlaces rotos que siguen pendientes: "Descargar CV" (el PDF no existe) y el
+  perfil de Roblox (`roblox.com/users/profile`).
+- **Historial reescrito**: los commits llevaban `Co-Authored-By: Claude`. Se
+  quito de los 42 con `git filter-branch --msg-filter` (solo mensajes; los
+  arboles son identicos) y se hizo force push. Los hashes cambiaron, y los
+  tres `runs/*rtn-int4-search*.json` que apuntaban a `93b738c` apuntan ahora a
+  `038c7c5`, el mismo codigo. La rama `renombrado-octuma` se borro de GitHub.
+  **Los commits nuevos van sin esa linea** y con mensajes cortos y tecnicos.
+  El repo de la app (privado) se dejo como estaba a proposito.
 
 ## Estructura y calidad (2026-09-20)
 
