@@ -49,71 +49,94 @@ pip, no porque se puedan omitir.
 | `gguf` | Exportar a GGUF para llama.cpp y Android | no hay `export` |
 | `dev` | `pytest` y `ruff`, para desarrollar | — |
 
-### Con GPU
+### Solo CPU
 
-El wheel de PyTorch que hay en PyPI es **solo CPU en Windows**: el de CUDA vive
-en otro indice y hay que pedirlo antes, o `octuma quantize` correra en CPU sin
-decir nada.
+```bash
+pip install "octuma[hf,gguf]"
+```
+
+Es la instalacion normal. El PyTorch que trae pip es la version para CPU en
+Windows; en Linux y macOS tambien funciona sin GPU.
+
+### Con GPU NVIDIA
+
+PyTorch con CUDA no esta en PyPI: hay que instalarlo antes desde su propio
+indice. Si se omite este paso, `octuma quantize` corre en CPU sin avisar.
 
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cu126
 pip install "octuma[hf,gguf]"     # respeta el torch que ya esta
 ```
 
-`cu126` tiene PyTorch para Python 3.10 a 3.14. Si sale `No matching
-distribution found for torch`, casi siempre es que ese indice no tiene tu
-version de Python: el viejo `cu121`, por ejemplo, llega solo hasta la 3.12.
-
-En CPU funciona igual, solo mas lento.
+`cu126` tiene PyTorch para Python 3.10 a 3.14. El error `No matching
+distribution found for torch` casi siempre significa que el indice no tiene la
+version de Python instalada; `cu121`, por ejemplo, llega solo hasta la 3.12.
 
 ## Pruebalo en tu PC
 
-Todo queda dentro de una carpeta y al final se borra. Los comandos son de
+Todo queda dentro de una carpeta que se borra al final. Los comandos son de
 PowerShell; en Linux o macOS el entorno se activa con `source .venv/bin/activate`.
+No hace falta descargar un modelo antes: `quantize` baja de Hugging Face el
+Qwen2.5 0.5B (~1 GB, sin cuenta).
+
+### Solo CPU
+
+La calibracion y la comparacion van recortadas para que terminen en minutos y
+no en horas.
 
 ```powershell
 mkdir C:\prueba-octuma
 cd C:\prueba-octuma
-Set-ExecutionPolicy -Scope Process Bypass   # deja activar el entorno, solo en esta terminal
-py -m venv .venv                            # con varios Python: py -3.10 -m venv .venv
+Set-ExecutionPolicy -Scope Process Bypass   # permite activar el entorno, solo en esta terminal
+py -m venv .venv                            # con varias versiones: py -3.10 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-
-# solo con GPU NVIDIA, y antes de instalar Octuma
-pip install torch --index-url https://download.pytorch.org/whl/cu126
 
 pip install "octuma[hf,gguf]"
 octuma --version
-```
 
-No hace falta tener un modelo: `quantize` lo baja de Hugging Face. El Qwen2.5
-0.5B pesa ~1 GB y no pide cuenta.
-
-```powershell
-# en CPU, calibracion corta para no esperar horas
 octuma quantize Qwen/Qwen2.5-0.5B-Instruct --samples 32 --seqlen 512 --out qwen05b
-# con GPU, la configuracion completa
-octuma quantize Qwen/Qwen2.5-0.5B-Instruct --out qwen05b
-
-octuma compare qwen05b --windows 5 --seqlen 512   # version corta de la comparacion
+octuma compare qwen05b --windows 5 --seqlen 512
 octuma try qwen05b -p "What is the capital of Australia?"
 octuma export qwen05b --out qwen05b.gguf
 ```
 
-La prueba corta sirve para ver que todo funciona, pero sus numeros no se
-comparan con las tablas de abajo, que usan 128 ventanas de 2048 tokens. En CPU,
-`compare` pasa varios minutos sin imprimir nada mientras mide: no esta trabado.
+`compare` pasa varios minutos sin imprimir nada mientras mide; no esta trabado.
 
-Para borrar todo al terminar:
+### Con GPU NVIDIA
+
+Con la configuracion completa, la misma de las tablas de abajo.
+
+```powershell
+mkdir C:\prueba-octuma
+cd C:\prueba-octuma
+Set-ExecutionPolicy -Scope Process Bypass
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+
+pip install torch --index-url https://download.pytorch.org/whl/cu126
+pip install "octuma[hf,gguf]"
+python -c "import torch; print(torch.cuda.is_available())"   # debe decir True
+octuma --version
+
+octuma quantize Qwen/Qwen2.5-0.5B-Instruct --out qwen05b
+octuma compare qwen05b
+octuma try qwen05b -p "What is the capital of Australia?"
+octuma export qwen05b --out qwen05b.gguf
+```
+
+Los numeros de la prueba en CPU no se comparan con las tablas, que usan 128
+ventanas de 2048 tokens; los de GPU si.
+
+### Para borrar todo
 
 ```powershell
 deactivate
-cd C:\
-Remove-Item -Recurse -Force C:\prueba-octuma
+cd C:Remove-Item -Recurse -Force C:\prueba-octuma
 Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\huggingface\hub\models--Qwen--Qwen2.5-0.5B-Instruct"
-Remove-Item -Recurse -Force "$env:APPDATA\octuma"   # la marca del pulpo
+Remove-Item -Recurse -Force "$env:APPDATA\octuma"   # registro de la ultima version usada
 ```
 
-Los datos de wikitext tambien quedan en `.cache\huggingface\hub\datasets--*`.
+Los datos de wikitext quedan en `.cache\huggingface\hub\datasets--*`.
 
 ## Modelos listos para usar
 
