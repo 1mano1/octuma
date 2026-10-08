@@ -133,10 +133,7 @@ This is the comparison that matters for running locally: Octuma's `.gguf`
 measured with the same engine, the same corpus and the same windows as its
 rivals.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/gguf-por-tamano-dark.png">
-  <img src="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/gguf-por-tamano.png" alt="Quality lost by model size: Octuma INT4 against Q4_K_M and Q4_0" width="760">
-</picture>
+<img src="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/gguf-por-tamano.png" alt="Quality lost by model size: Octuma INT4 against Q4_K_M and Q4_0" width="760">
 
 Quality lost against the same original in F16, and file size. Lower is better
 for both; in bold, the smallest loss in each row.
@@ -165,10 +162,7 @@ Per-model detail, with chart and full table, in
 
 ### Against bitsandbytes, inside PyTorch
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/comparativa-herramientas-dark.png">
-  <img src="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/comparativa-herramientas.png" alt="Perplexity of Qwen2.5-3B with Octuma and with bitsandbytes" width="760">
-</picture>
+<img src="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/comparativa-herramientas.png" alt="Perplexity of Qwen2.5-3B with Octuma and with bitsandbytes" width="760">
 
 On the same Qwen2.5-3B, with the same evaluator and the same windows, Octuma
 loses **less than half** of what bitsandbytes NF4 loses (NF4 is Hugging Face's
@@ -190,10 +184,7 @@ default quantizer and the one QLoRA uses), for 5% more memory:
 
 And the loss shrinks as the model grows, in PyTorch too:
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/degradacion-por-tamano-dark.png">
-  <img src="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/degradacion-por-tamano.png" alt="Quality lost by model size, in PyTorch" width="760">
-</picture>
+<img src="https://raw.githubusercontent.com/1mano1/octuma/main/docs/img/degradacion-por-tamano.png" alt="Quality lost by model size, in PyTorch" width="760">
 
 The numbers come from `runs/*.json` and the charts are regenerated with
 `python scripts/grafica_comparativa.py` and `python scripts/grafica_gguf.py`.
