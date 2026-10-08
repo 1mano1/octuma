@@ -207,7 +207,6 @@ detalle está en [`runs/COMPARATIVA.md`](runs/COMPARATIVA.md).
   setuptools moderno.
 - **El exportador a GGUF solo conoce cuatro arquitecturas**: `llama`, `qwen2`,
   `mistral` y `gemma`. Solo la familia Qwen2.5 está medida de punta a punta.
-- **No hay medición de velocidad en un teléfono** publicada todavía.
 
 ## Modelos listos para usar
 
@@ -505,8 +504,17 @@ Tiene que ser `llama-cli` y no `llama-completion`: estos son modelos *Instruct*
 y `llama-cli` les aplica su plantilla de chat. Con completado crudo, el 0.5B y
 `--temp 0` se quedan repitiendo la pregunta.
 
-**Octuma App**, la app Android que corre estos modelos dentro del teléfono,
-está en pruebas y todavía no está publicada.
+En un teléfono, dentro de **Octuma App** (la app Android que corre estos
+modelos; en pruebas, todavía sin publicar), con un Xiaomi 14T Pro y Android 16:
+
+| Modelo | Generación |
+|---|---|
+| Qwen2.5-0.5B INT4 | 28.4 tok/s |
+| Qwen2.5-1.5B INT4 | 9.9 tok/s |
+
+Mediana de cinco respuestas cada uno, build de publicación, dos hilos. Es un
+teléfono de gama alta: en uno modesto será más lento. Condiciones completas en
+[`runs/NOTA_telefono_2026-10-07.md`](runs/NOTA_telefono_2026-10-07.md).
 
 ## Resultados del barrido
 
