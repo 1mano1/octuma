@@ -16,3 +16,7 @@ runs/*.error.txt
 *.egg-info/
 # los artefactos de `python -m build`: se regeneran, no se versionan
 dist/
+.coverage
+# notas internas de trabajo: se quedan en el disco, no se publican
+CLAUDE.md
+.serena/
