@@ -238,8 +238,9 @@ proyecto se llamaba TinyQ:
 - Sus metadatos se llaman `tinyq.json`. Octuma los abre igual desde la 0.1.5;
   las versiones anteriores respondían que la carpeta no era de Octuma.
 - El `.gguf` se anuncia como `F16` en llama.cpp y en el visor de Hugging Face,
-  aunque sus pesos son Q4_1. Es solo la etiqueta: la calidad es la de la
-  tabla. Se corrige al re-exportarlos.
+  aunque sus pesos son Q4_1, y no trae la plantilla de chat. La calidad es la
+  de la tabla; llama.cpp usa ChatML cuando falta la plantilla, que es la de
+  Qwen. Las dos cosas se corrigen al re-exportarlos con la 0.1.5.
 
 ## Instalación
 
@@ -575,7 +576,7 @@ Detalle en [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md).
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # 127 pruebas, menos de un minuto en CPU
+pytest -q          # 129 pruebas, menos de un minuto en CPU
 ruff check .
 ```
 

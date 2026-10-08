@@ -242,8 +242,10 @@ was called TinyQ:
 - Their metadata file is named `tinyq.json`. Octuma opens it all the same from
   0.1.5 on; earlier versions answered that the folder was not an Octuma one.
 - The `.gguf` announces itself as `F16` in llama.cpp and in the Hugging Face
-  viewer, although its weights are Q4_1. It is only the label: the quality is
-  the one in the table. It gets fixed when they are re-exported.
+  viewer, although its weights are Q4_1, and it has no chat template. The
+  quality is the one in the table; llama.cpp falls back to ChatML when the
+  template is missing, which is Qwen's. Both get fixed when they are
+  re-exported with 0.1.5.
 
 ## Installation
 
@@ -582,7 +584,7 @@ Detail in [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md) (in Spanish).
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # 127 tests, under a minute on CPU
+pytest -q          # 129 tests, under a minute on CPU
 ruff check .
 ```
 
