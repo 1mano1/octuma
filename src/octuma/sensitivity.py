@@ -86,7 +86,7 @@ def analyze_sensitivity(
     model: nn.Module,
     calib: CalibrationSet,
     bits_options: tuple[int, ...] = (4, 8),
-    group_size: int = 64,
+    group_size: int = 32,
     device: torch.device | str = "cpu",
     progress=None,
 ) -> SensitivityReport:
@@ -144,8 +144,9 @@ def analyze_sensitivity(
 
 
 def config_from_plan(
-    plan: dict[str, int], base_bits: int = 4, group_size: int = 64
+    plan: dict[str, int], base_bits: int = 4, group_size: int = 32
 ) -> QuantConfig:
     """Convierte el plan en overrides por nombre de capa."""
-    overrides = {name.split(".", 2)[-1]: bits for name, bits in plan.items()}
+    # los nombres van enteros, con su bloque: ver QuantConfig.bits_for
+    overrides = dict(plan)
     return QuantConfig(bits=base_bits, group_size=group_size, bits_overrides=overrides)

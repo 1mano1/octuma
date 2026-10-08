@@ -74,7 +74,7 @@ def search_group_params(
 def quantize_groupwise_searched(
     w: torch.Tensor,
     bits: int = 4,
-    group_size: int = 64,
+    group_size: int = 32,
     symmetric: bool = False,
     n_grid: int = 20,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:

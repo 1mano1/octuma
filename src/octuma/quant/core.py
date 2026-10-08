@@ -45,7 +45,7 @@ def _grouped(w: torch.Tensor, group_size: int) -> torch.Tensor:
 def quantize_groupwise(
     w: torch.Tensor,
     bits: int = 4,
-    group_size: int = 64,
+    group_size: int = 32,
     symmetric: bool = False,
 ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Devuelve (q, scales, zeros) con q en [0, 2**bits - 1] y forma igual a w."""
@@ -121,7 +121,7 @@ def unpack_bits(packed: torch.Tensor, bits: int, in_features: int) -> torch.Tens
 def quantize_tensor(
     w: torch.Tensor,
     bits: int = 4,
-    group_size: int = 64,
+    group_size: int = 32,
     symmetric: bool = False,
     search: bool = False,
 ) -> QuantizedTensor:

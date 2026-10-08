@@ -18,7 +18,7 @@ from .search import search_group_params
 @dataclass
 class GPTQConfig:
     bits: int = 4
-    group_size: int = 64
+    group_size: int = 32
     symmetric: bool = False
     damp_percent: float = 0.01
     block_size: int = 128

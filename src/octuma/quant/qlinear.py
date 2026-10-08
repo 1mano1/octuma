@@ -20,7 +20,7 @@ class QuantLinear(nn.Module):
         in_features: int,
         out_features: int,
         bits: int = 4,
-        group_size: int = 64,
+        group_size: int = 32,
         bias: bool = True,
         dtype: torch.dtype = torch.float32,
     ) -> None:
@@ -50,7 +50,7 @@ class QuantLinear(nn.Module):
         cls,
         linear: nn.Linear,
         bits: int = 4,
-        group_size: int = 64,
+        group_size: int = 32,
         symmetric: bool = False,
         weight: torch.Tensor | None = None,
     ) -> QuantLinear:

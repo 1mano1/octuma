@@ -94,7 +94,7 @@ def search_scales(
     layers: list[nn.Linear],
     x: torch.Tensor,
     bits: int = 4,
-    group_size: int = 64,
+    group_size: int = 32,
     n_grid: int = 12,
     max_samples: int = 2048,
 ) -> tuple[torch.Tensor, float, float]:
@@ -154,7 +154,7 @@ def awq_scale_block(
     n_heads: int,
     n_kv_heads: int,
     bits: int = 4,
-    group_size: int = 64,
+    group_size: int = 32,
     n_grid: int = 12,
 ) -> tuple[list[dict], dict[nn.Linear, torch.Tensor]]:
     """Aplica AWQ a un bloque.

@@ -95,6 +95,17 @@ def _resolver_device_dtype(device: str, dtype: str, avisar_cpu: bool = True) -> 
     return device, dtype
 
 
+def _nombre_base(model: str) -> str:
+    """El ultimo tramo de un id del Hub o de una ruta local, en minusculas.
+
+    Las rutas de Windows llevan barra invertida. Partiendo solo por "/", una
+    carpeta local como `C:/modelos/qwen` escrita al estilo de Windows no se partia: la salida quedaba
+    junto al modelo original, con la ruta entera en minusculas, en vez de en
+    la carpeta actual como dice la ayuda.
+    """
+    return model.replace("\\", "/").rstrip("/").split("/")[-1].lower()
+
+
 def _leer_meta(model_dir: Path) -> dict:
     """Lee el octuma.json de una carpeta .tq, o explica por que no puede.
 
@@ -110,12 +121,16 @@ def _leer_meta(model_dir: Path) -> dict:
             "check that 'octuma quantize' finished: if it stopped halfway "
             "it writes nothing."
         )
-    if not (model_dir / "octuma.json").exists():
+    from .export.tq import meta_path, read_meta
+
+    # tambien vale `tinyq.json`, el nombre de antes del renombrado: es el que
+    # llevan dentro los modelos ya publicados en Hugging Face
+    if meta_path(model_dir) is None:
         raise typer.BadParameter(
             f"'{model_dir}' exists but has no octuma.json, so it is not "
             "a folder quantized by Octuma."
         )
-    return json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
+    return read_meta(model_dir)
 
 
 def _memoria_libre() -> tuple[float | None, float | None]:
@@ -231,7 +246,7 @@ def quantize(
     device, dtype = _resolver_device_dtype(device, dtype)
     if out is None:
         # sin --out: "Qwen/Qwen2.5-3B-Instruct" -> "qwen2.5-3b-instruct-int4"
-        out = Path(f"{model.rstrip('/').split('/')[-1].lower()}-int{bits}")
+        out = Path(f"{_nombre_base(model)}-int{bits}")
         console.print(f"Output folder: [bold]{out}[/bold]")
     _avisar_memoria(model, device)
 
@@ -244,8 +259,9 @@ def quantize(
     overrides: dict[str, int] = {}
     if plan:
         raw = json.loads(plan.read_text(encoding="utf-8"))
-        overrides = {k.split(".", 2)[-1]: int(v) for k, v in raw.items()}
-        console.print(f"Mixed precision: {len(overrides)} patterns at more bits")
+        # los nombres van enteros, con su bloque: ver QuantConfig.bits_for
+        overrides = {k: int(v) for k, v in raw.items()}
+        console.print(f"Mixed precision: {len(overrides)} layers at more bits")
 
     cfg = QuantConfig(
         bits=bits,
@@ -293,10 +309,10 @@ def evaluate(
     from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
 
     from .evaluate import generation_speed, model_size_bytes, perplexity, wikitext2_ids
-    from .export.tq import load_quantized
+    from .export.tq import load_quantized, meta_path
 
     tq_dir = Path(model)
-    is_tq = (tq_dir / "octuma.json").exists()
+    is_tq = tq_dir.is_dir() and meta_path(tq_dir) is not None
 
     if is_tq:
         console.print(f"[bold]Loading quantized model[/bold] {model}")
@@ -347,7 +363,7 @@ def analyze(
     calib: str = typer.Option("wikitext2", help="Calibration dataset"),
     samples: int = typer.Option(16, help="Calibration windows"),
     seq_len: int = typer.Option(256, "--seqlen"),
-    group_size: int = typer.Option(64, "--group"),
+    group_size: int = typer.Option(32, "--group"),
     target_bits: float = typer.Option(4.5, help="Target average bits"),
     device: str = typer.Option("cpu"),
     out: Path = typer.Option(None, "--out", "-o", help="Save the plan as JSON"),
@@ -570,7 +586,7 @@ def probar(
                 return
             console.print(f"\n{_responder(net, tok, pregunta, max_new, device)}\n")
 
-    meta = json.loads((model_dir / "octuma.json").read_text(encoding="utf-8"))
+    meta = _leer_meta(model_dir)
     origen = meta.get("source_model")
     if not origen:
         raise typer.BadParameter("the .tq does not say which model it came from")

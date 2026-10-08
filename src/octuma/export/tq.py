@@ -85,10 +85,37 @@ def save_quantized(
     return out
 
 
+# El archivo de metadatos de una carpeta .tq. El segundo nombre es el de
+# cuando el proyecto se llamaba TinyQ: los tres modelos publicados en Hugging
+# Face lo llevan asi, y una libreria que no abre sus propios modelos
+# publicados no sirve. Se escribe siempre con el primero.
+META = "octuma.json"
+META_ANTERIOR = "tinyq.json"
+
+
+def meta_path(in_dir: str | Path) -> Path | None:
+    """Donde estan los metadatos de la carpeta, o `None` si no es una .tq."""
+    path = Path(in_dir)
+    for nombre in (META, META_ANTERIOR):
+        if (path / nombre).exists():
+            return path / nombre
+    return None
+
+
+def read_meta(in_dir: str | Path) -> dict:
+    """Lee los metadatos de una carpeta .tq, con el nombre nuevo o el viejo."""
+    ruta = meta_path(in_dir)
+    if ruta is None:
+        raise FileNotFoundError(
+            f"'{in_dir}' has no {META}, so it is not a folder quantized by Octuma"
+        )
+    return json.loads(ruta.read_text(encoding="utf-8"))
+
+
 def load_quantized(model: nn.Module, in_dir: str | Path, device: str = "cpu") -> nn.Module:
     """Reconstruye un modelo ya cuantizado sobre un esqueleto de HF."""
     path = Path(in_dir)
-    meta = json.loads((path / "octuma.json").read_text(encoding="utf-8"))
+    meta = read_meta(path)
     tensors = load_file(str(path / "model.tq.safetensors"), device=device)
 
     for name, spec in meta["layers"].items():

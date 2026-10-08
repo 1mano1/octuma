@@ -25,19 +25,39 @@ DEFAULT_SKIP = ("lm_head", "embed_out", "score", "classifier")
 @dataclass
 class QuantConfig:
     bits: int = 4
-    group_size: int = 64
+    group_size: int = 32
     symmetric: bool = False
     method: str = "gptq"  # "gptq" | "rtn"
     damp_percent: float = 0.01
     skip: tuple[str, ...] = DEFAULT_SKIP
     bits_overrides: dict[str, int] = field(default_factory=dict)
-    awq: bool = False
+    awq: bool = True
     awq_samples: int = 1024
     search_scale: bool = True
 
     def bits_for(self, layer_name: str) -> int:
-        for pattern, bits in self.bits_overrides.items():
-            if pattern in layer_name:
+        """Bits de una capa, nombrada como `<bloque>.<capa>` ("3.mlp.down_proj").
+
+        `bits_overrides` admite dos tipos de clave:
+
+        - **Una capa concreta**, con su numero de bloque: `"3.mlp.down_proj"` o
+          `"blocks.3.mlp.down_proj"`, que es como las nombra el plan de
+          `octuma analyze`. Solo vale para esa capa.
+        - **Un tipo de capa**, sin numero: `"mlp.down_proj"`. Vale para todos
+          los bloques.
+
+        Antes todo se comparaba con `in`, y la CLI le quitaba el numero de
+        bloque a las claves del plan: un plan que subia cuatro capas concretas
+        subia esas cuatro *en todos los bloques*, y el promedio de bits se
+        pasaba del pedido sin que nada lo dijera. Ademas `"1.mlp"` casaba con
+        `"11.mlp"`. Por eso una clave con numero se compara entera.
+        """
+        claves = [(k.removeprefix("blocks."), bits) for k, bits in self.bits_overrides.items()]
+        for clave, bits in claves:
+            if clave == layer_name:
+                return bits
+        for clave, bits in claves:
+            if not clave[:1].isdigit() and clave in layer_name:
                 return bits
         return self.bits
 

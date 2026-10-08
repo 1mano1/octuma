@@ -67,6 +67,35 @@ def test_rtn_method_runs():
     assert report.q_bytes < report.fp_bytes
 
 
+def test_bits_overrides_de_una_capa_concreta_no_toca_otros_bloques():
+    """El plan de `octuma analyze` nombra capas con su bloque.
+
+    Se le quitaba el numero y la capa subia a 8 bits en todos los bloques: el
+    promedio de bits se pasaba del pedido y nada lo decia.
+    """
+    cfg = QuantConfig(bits=4, bits_overrides={"blocks.1.mlp.down_proj": 8})
+    assert cfg.bits_for("1.mlp.down_proj") == 8
+    assert cfg.bits_for("0.mlp.down_proj") == 4
+    # y "1." no puede casar con el bloque 11 ni con el 21
+    assert cfg.bits_for("11.mlp.down_proj") == 4
+    assert cfg.bits_for("21.mlp.down_proj") == 4
+    # la misma clave sin el prefijo "blocks." vale igual
+    assert QuantConfig(bits_overrides={"1.mlp.down_proj": 8}).bits_for("1.mlp.down_proj") == 8
+
+
+def test_bits_overrides_por_tipo_de_capa_vale_para_todos_los_bloques():
+    cfg = QuantConfig(bits=4, bits_overrides={"mlp.down_proj": 8})
+    assert cfg.bits_for("0.mlp.down_proj") == 8
+    assert cfg.bits_for("11.mlp.down_proj") == 8
+    assert cfg.bits_for("0.self_attn.q_proj") == 4
+
+
+def test_una_capa_concreta_manda_sobre_el_tipo():
+    cfg = QuantConfig(bits=4, bits_overrides={"mlp.down_proj": 8, "2.mlp.down_proj": 2})
+    assert cfg.bits_for("2.mlp.down_proj") == 2
+    assert cfg.bits_for("3.mlp.down_proj") == 8
+
+
 def test_bits_overrides_apply():
     model = tiny_llama()
     cfg = QuantConfig(bits=4, group_size=32, bits_overrides={"mlp.down_proj": 8})

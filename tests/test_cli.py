@@ -136,3 +136,42 @@ def test_memoria_libre_mira_tambien_la_ram_con_gpu_presente(monkeypatch):
     ram, vram = cli._memoria_libre()
     assert ram is not None and ram > 0
     assert vram == 8.0
+
+
+def test_la_api_de_python_y_la_cli_usan_los_mismos_valores():
+    """`QuantConfig()` a secas tiene que hacer lo mismo que `octuma quantize`.
+
+    No era asi: la clase venia con grupos de 64 y AWQ apagado, los valores de
+    antes del barrido, mientras la CLI usaba 32 y AWQ. Quien cuantizaba desde
+    Python sacaba un modelo peor que el de la terminal, y ademas uno que no se
+    podia exportar a GGUF, que exige grupos de 32.
+    """
+    from octuma.quantizer import QuantConfig
+
+    cli_d = _defaults(cli.quantize)
+    cfg = QuantConfig()
+    assert cfg.bits == cli_d["bits"]
+    assert cfg.group_size == cli_d["group_size"] == 32
+    assert cfg.awq is cli_d["awq"] is True
+    assert cfg.method == cli_d["method"]
+    assert cfg.symmetric is cli_d["symmetric"]
+    assert cfg.search_scale is cli_d["search_scale"]
+
+
+def test_analyze_mide_con_el_mismo_grupo_con_que_se_cuantiza():
+    """El plan se calculaba con grupos de 64 y se aplicaba cuantizando con 32."""
+    assert _defaults(cli.analyze)["group_size"] == _defaults(cli.quantize)["group_size"]
+
+
+def test_todo_el_paquete_usa_el_mismo_tamano_de_grupo():
+    """Un solo valor por defecto: el que exige el exportador a GGUF."""
+    import inspect as ins
+
+    from octuma.quant.core import quantize_tensor
+    from octuma.quant.gptq import GPTQConfig
+    from octuma.quant.qlinear import QuantLinear
+    from octuma.sensitivity import analyze_sensitivity, config_from_plan
+
+    assert GPTQConfig().group_size == 32
+    for fn in (quantize_tensor, QuantLinear.__init__, analyze_sensitivity, config_from_plan):
+        assert ins.signature(fn).parameters["group_size"].default == 32, fn.__qualname__
