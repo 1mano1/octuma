@@ -1,5 +1,58 @@
 # Cambios
 
+## 0.1.5 — 2026-10-07
+
+Tres fallos que encontraron las pruebas nuevas de la terminal, que hasta ahora
+no se ejecutaba en ninguna prueba.
+
+- **`octuma quantize --plan` aplicaba el plan a todos los bloques.** El plan de
+  `octuma analyze` nombra capas concretas (`blocks.1.mlp.down_proj`), pero al
+  leerlo se le quitaba el numero de bloque y la capa subia a 8 bits *en todos
+  los bloques*. Un plan de cuatro capas en un modelo de dos bloques dejaba
+  ocho a 8 bits; en un modelo de 24 bloques el promedio de bits se pasaba
+  mucho del pedido, sin ningun aviso. Ahora `bits_overrides` distingue una
+  capa concreta (`"3.mlp.down_proj"`, solo esa) de un tipo de capa
+  (`"mlp.down_proj"`, todos los bloques), y `"1.mlp"` ya no casa con el bloque
+  11. **Quien haya cuantizado con `--plan` en una version anterior tiene un
+  modelo con mas capas a 8 bits de las que pidio**: mas grande, no peor.
+- **Los modelos publicados no se podian abrir.** Los tres de Hugging Face se
+  subieron cuando el proyecto se llamaba TinyQ y traen `tinyq.json`; tras el
+  renombrado, `info`, `compare`, `try` y `export` exigian `octuma.json` y
+  contestaban que la carpeta no era de Octuma. Ahora se aceptan los dos
+  nombres. Se sigue escribiendo `octuma.json`.
+- **En Windows, `octuma quantize <carpeta local>` sin `--out` guardaba en otro
+  sitio.** El nombre de la salida se sacaba partiendo por `/`, y una ruta con
+  barra invertida no se partia: el resultado quedaba junto al modelo original,
+  con la ruta entera en minusculas, en vez de en la carpeta actual.
+- **El GGUF lleva la plantilla de chat.** `tokenizer.chat_template` no se
+  escribia: el archivo no decia donde empieza y acaba cada turno, y quien lo
+  abria tenia que adivinarlo. Los tres modelos publicados salieron asi.
+  `verify_gguf.py` lo comprueba ahora, igual que la etiqueta `F16` en un
+  archivo Q4_1. Hace falta re-exportar para corregirlo; no hay que recuantizar.
+- **La API de Python hace lo mismo que la terminal.** `QuantConfig()` venia
+  con grupos de 64 y AWQ apagado, los valores de antes del barrido, mientras
+  `octuma quantize` usaba 32 y AWQ: quien cuantizaba desde Python sacaba un
+  modelo peor que el de la terminal y que ademas no se podia exportar a GGUF.
+  Ahora todo el paquete usa grupos de 32 por defecto (`QuantConfig`,
+  `GPTQConfig`, `QuantLinear`, `quantize_tensor`) y `QuantConfig` trae AWQ
+  encendido. **Cambia el resultado de quien dependiera de los valores
+  viejos**: para conservarlos hay que pedir `group_size=64, awq=False`.
+- **`octuma analyze` mide con grupos de 32**, igual que `quantize`. El plan se
+  calculaba con 64 y se aplicaba cuantizando con 32.
+- **Pruebas: de 74 a 129.** La terminal se ejecuta de punta a punta con un
+  modelo diminuto (quantize, info, evaluate, compare, try, analyze y export),
+  la calibracion tiene las suyas, y otras comprueban que los comandos, las
+  opciones, los imports y los enlaces del README existen de verdad. La
+  cobertura pasa de 74% a 92%.
+- **README rehecho**, en español y en ingles: como funciona cada paso, tabla
+  de comandos, estructura del proyecto, el formato `.tq`, cabecera animada y
+  `llms.txt`. Corrige cuatro datos: la tabla contra llama.cpp ahora da el
+  tamaño de cada archivo (el de Octuma es entre 24% y 33% mas grande que
+  Q4_K_M en los tres modelos, y antes solo se decia del 0.5B); un grupo de 32
+  cuesta 4.75 bits por peso, no "~4.5"; `QuantConfig()` a secas no equivale a
+  la terminal; y la orden de "Para borrar todo" tenia dos comandos pegados en
+  una linea.
+
 ## 0.1.4 — 2026-09-29
 
 - **La terminal habla en ingles.** Todo lo que Octuma muestra al usuario
