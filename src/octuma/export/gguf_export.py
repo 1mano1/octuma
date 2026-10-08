@@ -163,6 +163,31 @@ def _write_vocab(writer, model_dir: Path, n_vocab: int = 0, arch: str = "") -> N
         writer.add_pad_token_id(ids["pad"])
     writer.add_add_bos_token(ids.get("add_bos", False))
 
+    # Sin plantilla el archivo no dice donde empieza y acaba cada turno, y
+    # cada programa que lo abre tiene que adivinarlo. Estuvo sin escribirse
+    # hasta la 0.1.4: los tres modelos publicados salieron sin ella.
+    plantilla = chat_template(model_dir)
+    if plantilla:
+        writer.add_chat_template(plantilla)
+
+
+def chat_template(model_dir: Path) -> str | None:
+    """La plantilla de chat del modelo, este donde este.
+
+    transformers 5 la guarda en `chat_template.jinja`; las versiones
+    anteriores, dentro de `tokenizer_config.json`. Si no hay ninguna devuelve
+    `None`: un modelo que no es de chat no la tiene, y no se inventa una.
+    """
+    suelta = Path(model_dir) / "chat_template.jinja"
+    if suelta.exists():
+        return suelta.read_text(encoding="utf-8")
+    cfg_path = Path(model_dir) / "tokenizer_config.json"
+    if cfg_path.exists():
+        valor = json.loads(cfg_path.read_text(encoding="utf-8")).get("chat_template")
+        if isinstance(valor, str) and valor:
+            return valor
+    return None
+
 
 _PRE_POR_ARCH = {
     "qwen2": "qwen2",

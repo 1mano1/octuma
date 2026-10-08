@@ -52,6 +52,20 @@ def revisar_metadatos(gguf_file: Path, tq_dir: Path) -> list[str]:
     if leer("tokenizer.ggml.eos_token_id") is None:
         fallos.append("falta tokenizer.eos_token_id: el modelo no sabra cuando parar")
 
+    # Los tres modelos publicados salieron sin plantilla y la app tuvo que
+    # remendarla a mano. Si el modelo de origen la trae, el GGUF tambien.
+    from octuma.export.gguf_export import chat_template
+
+    esperada = chat_template(tq_dir)
+    escrita = leer("tokenizer.chat_template")
+    if esperada and not escrita:
+        fallos.append("falta tokenizer.chat_template: el modelo de origen si la trae")
+    elif esperada and escrita != esperada:
+        fallos.append("tokenizer.chat_template no coincide con la del modelo de origen")
+
+    if leer("general.file_type") == int(gguf.LlamaFileType.MOSTLY_F16):
+        fallos.append("general.file_type dice F16 y los pesos son Q4_1")
+
     for clave, campo_cfg in (
         (f"{arch}.block_count", "num_hidden_layers"),
         (f"{arch}.embedding_length", "hidden_size"),
@@ -66,8 +80,10 @@ def revisar_metadatos(gguf_file: Path, tq_dir: Path) -> list[str]:
     print()
     print(f"{'metadato':34} valor")
     for clave in (f"{arch}.rope.freq_base", "tokenizer.ggml.pre",
-                  "tokenizer.ggml.eos_token_id", f"{arch}.block_count"):
+                  "tokenizer.ggml.eos_token_id", f"{arch}.block_count",
+                  "general.name", "general.file_type"):
         print(f"{clave:34} {leer(clave)}")
+    print(f"{'tokenizer.chat_template':34} {'si' if escrita else 'NO'}")
     return fallos
 
 

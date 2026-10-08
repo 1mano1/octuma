@@ -286,6 +286,52 @@ def test_export_escribe_un_gguf_que_se_puede_leer(cuantizado, tmp_path):
     # lo que anuncian llama.cpp y el visor de Hugging Face: estuvo en F16
     tipo = lector.fields["general.file_type"]
     assert int(tipo.parts[tipo.data[0]][0]) == int(gguf.LlamaFileType.MOSTLY_Q4_1)
+    # La plantilla de chat viaja dentro: sin ella quien abre el archivo tiene
+    # que adivinar donde empieza y acaba cada turno. Estuvo sin escribirse.
+    plantilla = lector.fields["tokenizer.chat_template"].contents()
+    assert "<|im_start|>" in plantilla and "messages" in plantilla
+    assert lector.fields["general.name"].contents() == "tiny"
+
+
+def test_verify_gguf_aprueba_lo_que_exporta_la_cli(cuantizado, tmp_path):
+    """El verificador y el exportador tienen que estar de acuerdo."""
+    pytest.importorskip("gguf")
+    import importlib.util
+    from pathlib import Path
+
+    salida, _ = cuantizado
+    destino = tmp_path / "tiny.gguf"
+    r = CliRunner().invoke(cli.app, ["export", str(salida), "--out", str(destino)])
+    assert r.exit_code == 0, r.output
+
+    ruta = Path(__file__).resolve().parents[1] / "scripts" / "verify_gguf.py"
+    spec = importlib.util.spec_from_file_location("verify_gguf", ruta)
+    verify = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(verify)
+    assert verify.revisar_metadatos(destino, salida) == []
+
+
+def test_verify_gguf_delata_un_gguf_sin_plantilla(cuantizado, tmp_path, monkeypatch):
+    """Un GGUF como los publicados (sin plantilla) tiene que salir en rojo."""
+    pytest.importorskip("gguf")
+    import importlib.util
+    from pathlib import Path
+
+    from octuma.export import gguf_export
+
+    salida, _ = cuantizado
+    destino = tmp_path / "sin-plantilla.gguf"
+    with monkeypatch.context() as m:
+        m.setattr(gguf_export, "chat_template", lambda _dir: None)
+        r = CliRunner().invoke(cli.app, ["export", str(salida), "--out", str(destino)])
+    assert r.exit_code == 0, r.output
+
+    ruta = Path(__file__).resolve().parents[1] / "scripts" / "verify_gguf.py"
+    spec = importlib.util.spec_from_file_location("verify_gguf", ruta)
+    verify = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(verify)
+    fallos = verify.revisar_metadatos(destino, salida)
+    assert any("chat_template" in f for f in fallos), fallos
 
 
 def test_abre_una_carpeta_con_el_nombre_de_antes_del_renombrado(cuantizado, tmp_path):
