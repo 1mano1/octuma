@@ -66,10 +66,10 @@ Hugging Face el modelo y el texto de calibración que tú le pides.
 
 | Paso | Qué hace | Dónde está |
 |---|---|---|
-| **Calibrar** | Toma ventanas al azar de un corpus real (wikitext-2, C4 o tus propios `.txt`) y las pasa por el modelo. De ahí sale, capa por capa, qué direcciones de la entrada importan: `H = 2·XXᵀ`. | [`calibrate.py`](src/octuma/calibrate.py) |
-| **Cuantizar** | Agrupa los pesos de 32 en 32 por fila, con una escala y un punto cero por grupo, y los lleva a 4 bits. El redondeo no es ciego: AWQ le da más resolución a los canales que reciben activaciones grandes, y GPTQ reparte el error de cada columna entre las que faltan usando `H`. Va bloque por bloque, y cada bloque recibe la salida ya cuantizada del anterior. | [`quantizer.py`](src/octuma/quantizer.py), [`quant/`](src/octuma/quant) |
-| **Evaluar** | Perplejidad en wikitext-2 con ventanas sin solape, memoria por tipo de capa y tokens por segundo. | [`evaluate.py`](src/octuma/evaluate.py) |
-| **Exportar** | Guarda la carpeta `.tq` (safetensors con los bits empaquetados) y escribe GGUF con los pesos en Q4_1. | [`export/`](src/octuma/export) |
+| **Calibrar** | Toma ventanas al azar de un corpus real (wikitext-2, C4 o tus propios `.txt`) y las pasa por el modelo. De ahí sale, capa por capa, qué direcciones de la entrada importan: `H = 2·XXᵀ`. | [`calibrate.py`](https://github.com/1mano1/octuma/blob/main/src/octuma/calibrate.py) |
+| **Cuantizar** | Agrupa los pesos de 32 en 32 por fila, con una escala y un punto cero por grupo, y los lleva a 4 bits. El redondeo no es ciego: AWQ le da más resolución a los canales que reciben activaciones grandes, y GPTQ reparte el error de cada columna entre las que faltan usando `H`. Va bloque por bloque, y cada bloque recibe la salida ya cuantizada del anterior. | [`quantizer.py`](https://github.com/1mano1/octuma/blob/main/src/octuma/quantizer.py), [`quant/`](https://github.com/1mano1/octuma/tree/main/src/octuma/quant) |
+| **Evaluar** | Perplejidad en wikitext-2 con ventanas sin solape, memoria por tipo de capa y tokens por segundo. | [`evaluate.py`](https://github.com/1mano1/octuma/blob/main/src/octuma/evaluate.py) |
+| **Exportar** | Guarda la carpeta `.tq` (safetensors con los bits empaquetados) y escribe GGUF con los pesos en Q4_1. | [`export/`](https://github.com/1mano1/octuma/tree/main/src/octuma/export) |
 
 ### Por qué por grupos y asimétrico
 
@@ -158,7 +158,7 @@ compras con ese espacio es calidad.
 cruce está entre 0.5B y 1.5B. Si tu modelo es diminuto, usa Q4_K_M.
 
 Detalle por modelo, con gráfica y tabla completa, en
-[`runs/COMPARATIVA_GGUF.md`](runs/COMPARATIVA_GGUF.md).
+[`runs/COMPARATIVA_GGUF.md`](https://github.com/1mano1/octuma/blob/main/runs/COMPARATIVA_GGUF.md).
 
 ### Contra bitsandbytes, dentro de PyTorch
 
@@ -193,7 +193,7 @@ Y la pérdida baja conforme el modelo crece, también en PyTorch:
 
 Los números salen de `runs/*.json` y las gráficas se regeneran con
 `python scripts/grafica_comparativa.py` y `python scripts/grafica_gguf.py`. El
-detalle está en [`runs/COMPARATIVA.md`](runs/COMPARATIVA.md).
+detalle está en [`runs/COMPARATIVA.md`](https://github.com/1mano1/octuma/blob/main/runs/COMPARATIVA.md).
 
 ### Lo que Octuma no hace
 
@@ -514,7 +514,7 @@ modelos; en pruebas, todavía sin publicar), con un Xiaomi 14T Pro y Android 16:
 
 Mediana de cinco respuestas cada uno, build de publicación, dos hilos. Es un
 teléfono de gama alta: en uno modesto será más lento. Condiciones completas en
-[`runs/NOTA_telefono_2026-10-07.md`](runs/NOTA_telefono_2026-10-07.md).
+[`runs/NOTA_telefono_2026-10-07.md`](https://github.com/1mano1/octuma/blob/main/runs/NOTA_telefono_2026-10-07.md).
 
 ## Resultados del barrido
 
@@ -560,7 +560,7 @@ y **estorba** en 1.5B y 7B. En el 7B reduce el error de reconstrucción de los
 pesos (0.09503 → 0.09152) pero **empeora** la perplejidad (7.4386 → 7.5189).
 
 Minimizar el error de los pesos no equivale a preservar la calidad del modelo.
-Detalle en [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md).
+Detalle en [`runs/NOTA_rtn_search.md`](https://github.com/1mano1/octuma/blob/main/runs/NOTA_rtn_search.md).
 
 ## Estado
 
@@ -584,7 +584,7 @@ Detalle en [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md).
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # 129 pruebas, menos de un minuto en CPU
+pytest -q          # 131 pruebas, menos de un minuto en CPU
 ruff check .
 ```
 
@@ -594,12 +594,12 @@ y los imports que enseña este README existen de verdad. La CI las corre en
 Linux y Windows con Python 3.10, 3.11 y 3.12.
 
 Las dos reglas que ya costaron caro están en
-[`CONTRIBUTING.md`](CONTRIBUTING.md): un valor por defecto nunca tapa un fallo,
+[`CONTRIBUTING.md`](https://github.com/1mano1/octuma/blob/main/CONTRIBUTING.md): un valor por defecto nunca tapa un fallo,
 y los valores por defecto son lo que se midió como mejor.
 
 ## Licencia
 
-El código de Octuma es **MIT** (ver [LICENSE](LICENSE)).
+El código de Octuma es **MIT** (ver [LICENSE](https://github.com/1mano1/octuma/blob/main/LICENSE)).
 
 **Los modelos son otra cosa.** Un modelo cuantizado es una obra derivada: se
 queda con la licencia del original, y la de Octuma no la afloja. Por eso cada

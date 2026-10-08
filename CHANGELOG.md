@@ -39,7 +39,7 @@ no se ejecutaba en ninguna prueba.
   viejos**: para conservarlos hay que pedir `group_size=64, awq=False`.
 - **`octuma analyze` mide con grupos de 32**, igual que `quantize`. El plan se
   calculaba con 64 y se aplicaba cuantizando con 32.
-- **Pruebas: de 74 a 129.** La terminal se ejecuta de punta a punta con un
+- **Pruebas: de 74 a 131.** La terminal se ejecuta de punta a punta con un
   modelo diminuto (quantize, info, evaluate, compare, try, analyze y export),
   la calibracion tiene las suyas, y otras comprueban que los comandos, las
   opciones, los imports y los enlaces del README existen de verdad. La

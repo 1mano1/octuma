@@ -66,10 +66,10 @@ Hugging Face, the model and the calibration text you ask for.
 
 | Step | What it does | Where it lives |
 |---|---|---|
-| **Calibrate** | Takes random windows from a real corpus (wikitext-2, C4 or your own `.txt` files) and runs them through the model. That gives, layer by layer, which input directions matter: `H = 2·XXᵀ`. | [`calibrate.py`](src/octuma/calibrate.py) |
-| **Quantize** | Groups the weights 32 at a time per row, with one scale and one zero point per group, and takes them to 4 bits. The rounding is not blind: AWQ gives more resolution to the channels that receive large activations, and GPTQ spreads each column's error over the columns still to come, using `H`. It goes block by block, and each block receives the already quantized output of the previous one. | [`quantizer.py`](src/octuma/quantizer.py), [`quant/`](src/octuma/quant) |
-| **Evaluate** | Perplexity on wikitext-2 with non-overlapping windows, memory per layer type and tokens per second. | [`evaluate.py`](src/octuma/evaluate.py) |
-| **Export** | Saves the `.tq` folder (safetensors with packed bits) and writes GGUF with the weights in Q4_1. | [`export/`](src/octuma/export) |
+| **Calibrate** | Takes random windows from a real corpus (wikitext-2, C4 or your own `.txt` files) and runs them through the model. That gives, layer by layer, which input directions matter: `H = 2·XXᵀ`. | [`calibrate.py`](https://github.com/1mano1/octuma/blob/main/src/octuma/calibrate.py) |
+| **Quantize** | Groups the weights 32 at a time per row, with one scale and one zero point per group, and takes them to 4 bits. The rounding is not blind: AWQ gives more resolution to the channels that receive large activations, and GPTQ spreads each column's error over the columns still to come, using `H`. It goes block by block, and each block receives the already quantized output of the previous one. | [`quantizer.py`](https://github.com/1mano1/octuma/blob/main/src/octuma/quantizer.py), [`quant/`](https://github.com/1mano1/octuma/tree/main/src/octuma/quant) |
+| **Evaluate** | Perplexity on wikitext-2 with non-overlapping windows, memory per layer type and tokens per second. | [`evaluate.py`](https://github.com/1mano1/octuma/blob/main/src/octuma/evaluate.py) |
+| **Export** | Saves the `.tq` folder (safetensors with packed bits) and writes GGUF with the weights in Q4_1. | [`export/`](https://github.com/1mano1/octuma/tree/main/src/octuma/export) |
 
 ### Why groups, and why asymmetric
 
@@ -161,7 +161,7 @@ space. The crossover is between 0.5B and 1.5B. If your model is tiny, use
 Q4_K_M.
 
 Per-model detail, with chart and full table, in
-[`runs/COMPARATIVA_GGUF.md`](runs/COMPARATIVA_GGUF.md) (in Spanish).
+[`runs/COMPARATIVA_GGUF.md`](https://github.com/1mano1/octuma/blob/main/runs/COMPARATIVA_GGUF.md) (in Spanish).
 
 ### Against bitsandbytes, inside PyTorch
 
@@ -197,7 +197,7 @@ And the loss shrinks as the model grows, in PyTorch too:
 
 The numbers come from `runs/*.json` and the charts are regenerated with
 `python scripts/grafica_comparativa.py` and `python scripts/grafica_gguf.py`.
-The detail is in [`runs/COMPARATIVA.md`](runs/COMPARATIVA.md) (in Spanish).
+The detail is in [`runs/COMPARATIVA.md`](https://github.com/1mano1/octuma/blob/main/runs/COMPARATIVA.md) (in Spanish).
 
 ### What Octuma does not do
 
@@ -522,7 +522,7 @@ testing, not published yet), on a Xiaomi 14T Pro with Android 16:
 
 Median of five answers each, release build, two threads. It is a high-end
 phone: a modest one will be slower. Full conditions in
-[`runs/NOTA_telefono_2026-10-07.md`](runs/NOTA_telefono_2026-10-07.md) (in
+[`runs/NOTA_telefono_2026-10-07.md`](https://github.com/1mano1/octuma/blob/main/runs/NOTA_telefono_2026-10-07.md) (in
 Spanish).
 
 ## Sweep results
@@ -569,7 +569,7 @@ Scale search (`--search-scale`), measured on RTN, helps on 0.5B and 3B and
 (0.09503 → 0.09152) but makes perplexity **worse** (7.4386 → 7.5189).
 
 Minimizing the weight error is not the same as preserving model quality.
-Detail in [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md) (in Spanish).
+Detail in [`runs/NOTA_rtn_search.md`](https://github.com/1mano1/octuma/blob/main/runs/NOTA_rtn_search.md) (in Spanish).
 
 ## Status
 
@@ -593,7 +593,7 @@ Detail in [`runs/NOTA_rtn_search.md`](runs/NOTA_rtn_search.md) (in Spanish).
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # 129 tests, under a minute on CPU
+pytest -q          # 131 tests, under a minute on CPU
 ruff check .
 ```
 
@@ -603,12 +603,12 @@ this README shows really exist. CI runs them on Linux and Windows with Python
 3.10, 3.11 and 3.12.
 
 The two rules that already cost us dearly are in
-[`CONTRIBUTING.md`](CONTRIBUTING.md) (in Spanish): a default never hides a
+[`CONTRIBUTING.md`](https://github.com/1mano1/octuma/blob/main/CONTRIBUTING.md) (in Spanish): a default never hides a
 failure, and the defaults are whatever measured best.
 
 ## License
 
-Octuma's code is **MIT** (see [LICENSE](LICENSE)).
+Octuma's code is **MIT** (see [LICENSE](https://github.com/1mano1/octuma/blob/main/LICENSE)).
 
 **The models are a different matter.** A quantized model is a derivative work:
 it keeps the license of the original, and Octuma's does not loosen it. That is

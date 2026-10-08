@@ -17,6 +17,7 @@ import pytest
 RAIZ = Path(__file__).resolve().parents[1]
 RAW = "https://raw.githubusercontent.com/1mano1/octuma/main/"
 BLOB = "https://github.com/1mano1/octuma/blob/main/"
+TREE = "https://github.com/1mano1/octuma/tree/main/"
 
 
 def _leer(archivo: str) -> str:
@@ -33,11 +34,22 @@ def test_los_enlaces_a_este_repo_apuntan_a_archivos_que_existen(archivo):
     """
     texto = _leer(archivo)
     rutas: set[str] = set()
-    for base in (RAW, BLOB):
+    for base in (RAW, BLOB, TREE):
         rutas |= set(re.findall(re.escape(base) + r"([\w./-]+)", texto))
     assert rutas, f"{archivo} deberia enlazar algo del repositorio"
     faltan = sorted(r for r in rutas if not (RAIZ / r.rstrip(".")).exists())
     assert not faltan, f"{archivo} enlaza archivos que no existen: {faltan}"
+
+
+@pytest.mark.parametrize("archivo", ["README.md", "README.en.md"])
+def test_no_hay_enlaces_relativos(archivo):
+    """El README en ingles es la pagina de PyPI, y PyPI no resuelve rutas
+    relativas: un enlace a `runs/...` sale roto ahi, y una version publicada
+    ya no se puede corregir."""
+    texto = _leer(archivo)
+    relativos = re.findall(r"\]\((?!https?://|#|mailto:)([^)\s]+)\)", texto)
+    relativos += re.findall(r'(?:src|href)="(?!https?://|#|mailto:)([^"]+)"', texto)
+    assert not relativos, f"{archivo} tiene enlaces relativos: {relativos}"
 
 
 @pytest.mark.parametrize("archivo", ["README.md", "README.en.md"])
