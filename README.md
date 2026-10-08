@@ -524,11 +524,24 @@ contando solo los pesos cuantizados: el modelo entero baja 59% en el 3B, porque
 los embeddings se quedan en FP16.
 
 > El barrido se corrió con **grupos de 64**, que era el valor por defecto
-> entonces. Hoy la terminal usa 32, que es lo que exige el exportador a GGUF y
-> lo que llevan dentro los tres modelos publicados. Grupos más chicos guardan
-> más escalas y por eso comprimen menos: 3.66x con 64 contra 3.37x con 32. Las
-> tablas de llama.cpp de más arriba sí son con 32; lo que no está medido es
-> cuánta perplejidad cambia entre un tamaño de grupo y el otro.
+> entonces. Hoy Octuma usa 32, que es lo que exige el exportador a GGUF y lo
+> que llevan dentro los tres modelos publicados. Grupos más chicos guardan más
+> escalas y por eso comprimen menos: 3.66x con 64 contra 3.37x con 32. Las
+> tablas de llama.cpp de más arriba sí son con 32.
+
+### Grupos de 32 contra 64
+
+Medido con el mismo protocolo del barrido, grupos de 32 pierden menos calidad
+a cambio de un poco más de memoria:
+
+| Modelo | Pérdida con 64 | Pérdida con 32 | Memoria con 64 | Memoria con 32 |
+|---|---|---|---|---|
+| Qwen2.5-0.5B | +5.23% | **+2.83%** | 0.740 GB | 0.757 GB |
+| Qwen2.5-1.5B | +2.31% | **+2.03%** | 1.650 GB | 1.712 GB |
+
+La ventaja es grande en el 0.5B y pequeña en el 1.5B. El 3B y el 7B no se
+midieron con 32; está pendiente. Detalle en
+[`runs/NOTA_grupos_32_vs_64.md`](https://github.com/1mano1/octuma/blob/main/runs/NOTA_grupos_32_vs_64.md).
 
 ### Cuánta calibración hace falta
 

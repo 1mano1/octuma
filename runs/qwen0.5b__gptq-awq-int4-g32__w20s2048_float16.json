@@ -1,0 +1,43 @@
+{
+  "id": "qwen0.5b__gptq-awq-int4-g32__w20s2048_float16",
+  "model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "short": "qwen0.5b",
+  "method": "gptq-awq-int4",
+  "octuma_version": "0.1.5",
+  "torch": "2.14.1+cu126",
+  "gpu": "NVIDIA GeForce RTX 4060",
+  "fecha": "2026-10-07",
+  "config": {
+    "bits": 4,
+    "group_size": 32,
+    "method": "gptq",
+    "awq": true,
+    "search_scale": true,
+    "calib_samples": 128,
+    "calib_seq_len": 2048
+  },
+  "eval": {
+    "windows": 20,
+    "seq_len": 2048,
+    "dtype": "float16"
+  },
+  "perplexity_fp16": 13.817982529435723,
+  "perplexity": 14.209080776557178,
+  "loss_pct": 2.8303570820727098,
+  "memory_bytes_fp16": 1260247040,
+  "memory_bytes": 757053440,
+  "quant_summary": {
+    "n_layers": 168,
+    "fp_gb": 0.71565312,
+    "q_gb": 0.21245952,
+    "compression": 3.3684210526315788,
+    "mean_rel_fro": 0.10283418966545946,
+    "worst_layer": [
+      "blocks.16.self_attn.v_proj",
+      0.13602674007415771
+    ],
+    "seconds": 299.8559545999997
+  },
+  "quant_seconds": 299.85825848579407,
+  "gguf_bytes": 519162592
+}

@@ -532,12 +532,25 @@ practically free (+0.03%) but only compresses 1.91x; INT4 compresses 3.66x,
 counting only the quantized weights: the whole model shrinks 59% on the 3B,
 because the embeddings stay in FP16.
 
-> The sweep was run with **groups of 64**, the default at the time. Today the
-> terminal uses 32, which is what the GGUF exporter requires and what the three
+> The sweep was run with **groups of 64**, the default at the time. Today
+> Octuma uses 32, which is what the GGUF exporter requires and what the three
 > published models contain. Smaller groups store more scales and so compress
 > less: 3.66x with 64 against 3.37x with 32. The llama.cpp tables above are
-> with 32; what has not been measured is how much perplexity changes between
-> one group size and the other.
+> with 32.
+
+### Groups of 32 against 64
+
+Measured with the same protocol as the sweep, groups of 32 lose less quality
+for a little more memory:
+
+| Model | Loss with 64 | Loss with 32 | Memory with 64 | Memory with 32 |
+|---|---|---|---|---|
+| Qwen2.5-0.5B | +5.23% | **+2.83%** | 0.740 GB | 0.757 GB |
+| Qwen2.5-1.5B | +2.31% | **+2.03%** | 1.650 GB | 1.712 GB |
+
+The advantage is large on the 0.5B and small on the 1.5B. The 3B and 7B have
+not been measured with 32; that is pending. Detail in
+[`runs/NOTA_grupos_32_vs_64.md`](https://github.com/1mano1/octuma/blob/main/runs/NOTA_grupos_32_vs_64.md) (in Spanish).
 
 ### How much calibration is needed
 
