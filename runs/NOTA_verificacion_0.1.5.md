@@ -43,8 +43,34 @@ veces más texto de calibración recorta la pérdida en 0.4 puntos.
   todavía llevan mal: la etiqueta `F16` y la plantilla de chat ausente.
   `verify_gguf.py` marca los dos en un archivo como los publicados.
 
-## Lo que falta
 
-Repetir los tres modelos (0.5B, 1.5B y 3B) con la calibración completa en una
-máquina con GPU, medirlos con `scripts/bench_gguf.py` y resubirlos a Hugging
-Face. En esta laptop solo cabe el 0.5B.
+## Re-exportación de los tres modelos publicados
+
+Fecha: 2026-10-07, en la PC con RTX 4060 (Python 3.10.0, torch 2.5.1+cu121,
+transformers 5.12.1, llama.cpp b11065 con CUDA). Las 129 pruebas pasan ahí.
+
+Se re-exportaron las tres carpetas `.tq` publicadas, **sin recuantizar**:
+
+```bash
+octuma export <carpeta-tq> --out <slug>-int4.gguf --name <slug>-int4-Octuma
+python scripts/verify_gguf.py <carpeta-tq> <slug>-int4.gguf
+llama-perplexity -m <slug>-int4.gguf -f out/wikitext2.txt -c 2048 --chunks 20 -ngl 99
+```
+
+| Modelo | Perplejidad | Publicada | `verify_gguf.py` | Bytes | SHA-256 |
+|---|---|---|---|---|---|
+| Qwen2.5-0.5B | 12.7096 | 12.7096 | correcto | 519 162 624 | `81a76b5061c454178be00dcbf21bd574a745cc3bcb2c5446893c8bc5b0485a81` |
+| Qwen2.5-1.5B | 8.4864 | 8.4864 | correcto | 1 321 322 432 | `696021abd23ff9ff902b3c167ccbd18f432f100950b763e9d426a1224e211a42` |
+| Qwen2.5-3B | 7.5118 | 7.5118 | correcto | 2 402 231 616 | `3f502c8531f863463ea192aa2b0597f6fdef9bf6e4f10010bfd27b8c10dbda82` |
+
+La perplejidad es idéntica a la de `runs/gguf__*.json` porque los pesos no
+cambian. Cambian tres metadatos: `general.file_type` pasa de F16 a Q4_1,
+`general.name` deja de decir TinyQ y aparece `tokenizer.chat_template`. Cada
+archivo crece 2 560 bytes, que es la plantilla.
+
+Los tres contestan "The capital of Australia is Canberra." en `llama-cli`, a
+189, 156 y 92 tokens por segundo en la RTX 4060.
+
+**Estos archivos todavía no están en Hugging Face.** Al subirlos cambian el
+tamaño y el SHA-256 de cada `.gguf`: quien los verifique por huella tiene que
+actualizarla a la vez.
