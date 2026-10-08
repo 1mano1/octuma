@@ -10,8 +10,8 @@ name = "octuma"
 # y nada obligaba a que coincidieran: se podia publicar un paquete que dijera
 # una version y un `octuma --version` que dijera otra.
 dynamic = ["version"]
-description = "Cuantizacion INT4/INT8 de modelos de lenguaje para equipos modestos y telefonos Android"
-readme = "README.md"
+description = "INT4/INT8 quantization of language models (GPTQ + AWQ) for modest hardware and Android phones, with GGUF export"
+readme = "README.en.md"
 requires-python = ">=3.10"
 license = "MIT"
 license-files = ["LICENSE"]
