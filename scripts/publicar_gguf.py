@@ -7,7 +7,8 @@ para no romper los enlaces ni los ejemplos.
     python scripts/publicar_gguf.py qwen3b            # sube modelo y ficha
     python scripts/publicar_gguf.py qwen3b --dry-run  # solo escribe la ficha
 
-El token se lee de HF_TOKEN (entorno o .env) y nunca se imprime.
+El token sale de la sesion de `hf auth login`, o de HF_TOKEN (entorno o .env),
+y nunca se imprime.
 """
 
 from __future__ import annotations
@@ -203,7 +204,7 @@ llama-cli -m {slug}/{gguf_nombre} -p "Hola"
 ### PyTorch
 
 ```bash
-pip install "octuma[hf] @ git+{GITHUB}.git"
+pip install "octuma[hf]"
 ```
 
 ```python
@@ -242,6 +243,12 @@ metadatos mal escritos (`rope.freq_base`, el pre-tokenizador y el
 `eos_token_id`). Los pesos siempre estuvieron bien; el archivo actual los
 reescribe correctamente. Si lo descargaste antes de esa fecha, vuelve a
 bajarlo.
+
+El **2026-10-07** se re-exporto con Octuma 0.1.5, sin recuantizar: los pesos y
+la perplejidad son los mismos. Cambian tres metadatos: el archivo ya trae la
+plantilla de chat (`tokenizer.chat_template`), se anuncia como `Q4_1` en vez
+de `F16`, y los metadatos de la carpeta `.tq` pasan de `tinyq.json` a
+`octuma.json`. El `.gguf` pesa 2 560 bytes mas y su SHA-256 es otro.
 
 ## Licencia
 
@@ -319,8 +326,17 @@ def main() -> None:
         subir(
             str(gguf_local),
             gguf_nombre,
-            "GGUF re-exportado: declara Q4_1 en general.file_type (antes decia F16)",
+            "GGUF re-exportado: plantilla de chat y file_type Q4_1",
         )
+
+    # Los metadatos de la carpeta .tq se llamaban tinyq.json cuando el proyecto
+    # era TinyQ. Octuma 0.1.5 lee los dos nombres; las versiones anteriores,
+    # solo octuma.json. Se sube el nuevo antes de borrar el viejo, para que el
+    # repo nunca se quede sin ninguno.
+    subir(str(tq / "octuma.json"), "octuma.json", "Metadatos de la carpeta .tq como octuma.json")
+    if "tinyq.json" in en_hub:
+        api.delete_file("tinyq.json", repo_id=repo, commit_message="Quita tinyq.json: lo reemplaza octuma.json")
+        print("tinyq.json reemplazado por octuma.json")
 
     # La licencia del original viaja con los pesos derivados: Apache 2.0 §4(a) y
     # Qwen Research §3a piden ambas entregar copia a quien reciba el modelo.

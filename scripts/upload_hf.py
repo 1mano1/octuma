@@ -23,7 +23,17 @@ def load_token() -> str:
         for line in env.read_text(encoding="utf-8").splitlines():
             if line.strip().startswith("HF_TOKEN="):
                 return line.split("=", 1)[1].strip().strip('"').strip("'")
-    raise SystemExit("Falta HF_TOKEN (ponlo en .env o en el entorno)")
+    # La sesion de `hf auth login`: asi el token no hay que escribirlo en
+    # ningun archivo del proyecto.
+    try:
+        from huggingface_hub import get_token
+
+        tok = get_token()
+    except ImportError:
+        tok = None
+    if tok:
+        return tok
+    raise SystemExit("Falta el token: corre `hf auth login`, o pon HF_TOKEN en .env o en el entorno")
 
 
 def model_card(meta: dict, run: dict | None, repo: str, gguf: str | None) -> str:
