@@ -1,0 +1,75 @@
+# Octuma
+
+> Python library and CLI that quantizes language models to INT4/INT8 (GPTQ + AWQ, group-wise, asymmetric) so they fit on modest laptops and Android phones. It exports to GGUF (Q4_1) for llama.cpp and to its own `.tq` format for PyTorch. Everything runs locally; the only network use is downloading the model and the calibration text from Hugging Face.
+
+Octuma is distributed on PyPI as `octuma` (the install name, the import name and the command are all `octuma`). It was called TinyQ until 2026-09-22; old GitHub and Hugging Face links redirect. Code comments, CHANGELOG, CONTRIBUTING and the notes under `runs/` are in Spanish; everything the CLI prints is in English.
+
+## Start here
+
+- [README (English)](https://github.com/1mano1/octuma/blob/main/README.en.md): what it does, how it works, results, commands, project layout.
+- [README (Español)](https://github.com/1mano1/octuma/blob/main/README.md): the same content in Spanish.
+- [PyPI package](https://pypi.org/project/octuma/): `pip install "octuma[hf,gguf]"`.
+- [CHANGELOG](https://github.com/1mano1/octuma/blob/main/CHANGELOG.md): what changed in each version (Spanish).
+- [CONTRIBUTING](https://github.com/1mano1/octuma/blob/main/CONTRIBUTING.md): install, test and the two house rules (Spanish).
+
+## Install (copy-paste-runnable)
+
+- CPU: `pip install "octuma[hf,gguf]"`
+- NVIDIA GPU: `pip install torch --index-url https://download.pytorch.org/whl/cu126` then `pip install "octuma[hf,gguf]"`
+- Requires Python 3.10+. The extras are needed: without `hf` only `octuma --version` and `octuma info` work; without `gguf` there is no `export`.
+
+## Commands
+
+- `octuma quantize <model>`: calibrate, quantize and save a `.tq` folder. `<model>` is a Hugging Face id or a local folder. Defaults: 4 bits, groups of 32, GPTQ + AWQ, 128 windows of 2048 tokens of wikitext-2, device and dtype auto. Without `--out` the folder is `<model-name-lowercase>-int<bits>`.
+- `octuma compare <folder>`: perplexity, memory and speed of the quantized model against the original, in one table.
+- `octuma try <folder>`: chat in the terminal. `-p "question"` for one answer; `--side-by-side` for ten fixed questions against the original.
+- `octuma export <folder> --out <file.gguf>`: write GGUF. Requires 4 bits and groups of 32 in every quantized layer, so mixed-precision models cannot be exported.
+- `octuma info <folder>`: show source model, calibration, layers and bits without loading weights.
+- `octuma evaluate <model>`: perplexity and memory of any model, quantized or not; `--out` saves JSON.
+- `octuma analyze <model>`: rank layers by output error at 4 bits and write a mixed-precision plan (`--out plan.json`), used with `octuma quantize --plan plan.json`.
+- `octuma --version`: installed version.
+
+## Python API
+
+- `octuma.calibrate.load_wikitext2(tokenizer, n_samples, seq_len)` and `load_calibration(name_or_path, tokenizer, ...)` return a `CalibrationSet`.
+- `octuma.quantizer.QuantConfig()` has the same defaults as the CLI since 0.1.5: 4 bits, groups of 32, GPTQ + AWQ. Up to 0.1.4 it defaulted to `group_size=64` and `awq=False`.
+- `octuma.quantizer.quantize_model(model, calib, cfg)` quantizes in place and returns a `QuantReport` (`.summary()`).
+- `octuma.export.tq.save_quantized(model, folder)` and `load_quantized(skeleton_model, folder)`.
+- `octuma.export.gguf_export.export_gguf(model, out_path, model_dir, name=...)`.
+- `QuantConfig.bits_overrides`: `{"mlp.down_proj": 8}` applies to that layer type in every block; `{"3.mlp.down_proj": 8}` (or `"blocks.3.mlp.down_proj"`) applies to one layer.
+
+## Source map
+
+- [src/octuma/cli.py](https://github.com/1mano1/octuma/blob/main/src/octuma/cli.py): the commands, their defaults and the memory warnings.
+- [src/octuma/calibrate.py](https://github.com/1mano1/octuma/blob/main/src/octuma/calibrate.py): calibration windows from wikitext-2, C4 or local `.txt` files.
+- [src/octuma/quantizer.py](https://github.com/1mano1/octuma/blob/main/src/octuma/quantizer.py): block-by-block pipeline (`quantize_model`, `QuantConfig`).
+- [src/octuma/quant/core.py](https://github.com/1mano1/octuma/blob/main/src/octuma/quant/core.py): group-wise quantization math and bit packing.
+- [src/octuma/quant/gptq.py](https://github.com/1mano1/octuma/blob/main/src/octuma/quant/gptq.py): GPTQ error compensation with the damped Hessian.
+- [src/octuma/quant/awq.py](https://github.com/1mano1/octuma/blob/main/src/octuma/quant/awq.py): AWQ channel scaling folded into the previous layer.
+- [src/octuma/quant/search.py](https://github.com/1mano1/octuma/blob/main/src/octuma/quant/search.py): per-group scale search.
+- [src/octuma/quant/qlinear.py](https://github.com/1mano1/octuma/blob/main/src/octuma/quant/qlinear.py): `QuantLinear`, the drop-in for `nn.Linear`.
+- [src/octuma/sensitivity.py](https://github.com/1mano1/octuma/blob/main/src/octuma/sensitivity.py): per-layer output error and the mixed-precision plan.
+- [src/octuma/evaluate.py](https://github.com/1mano1/octuma/blob/main/src/octuma/evaluate.py): perplexity, memory and speed.
+- [src/octuma/export/tq.py](https://github.com/1mano1/octuma/blob/main/src/octuma/export/tq.py): the `.tq` folder (`model.tq.safetensors` plus `octuma.json`).
+- [src/octuma/export/gguf_export.py](https://github.com/1mano1/octuma/blob/main/src/octuma/export/gguf_export.py): GGUF writer (Q4_1 blocks, metadata, vocabulary). Supported architectures: `llama`, `qwen2`, `mistral`, `gemma`.
+- [scripts/verify_gguf.py](https://github.com/1mano1/octuma/blob/main/scripts/verify_gguf.py): compares a GGUF against its `.tq`, weights and metadata; exits non-zero on mismatch. Repository only, not in the pip package.
+
+## Measured results
+
+- [runs/COMPARATIVA_GGUF.md](https://github.com/1mano1/octuma/blob/main/runs/COMPARATIVA_GGUF.md): Octuma INT4 against Q4_K_M and Q4_0, measured inside llama.cpp on Qwen2.5 0.5B, 1.5B and 3B (wikitext-2, 20 windows of 2048 tokens).
+- [runs/COMPARATIVA.md](https://github.com/1mano1/octuma/blob/main/runs/COMPARATIVA.md): Octuma against bitsandbytes NF4 and FP4 on Qwen2.5-3B, in PyTorch.
+- Every number in the README comes from the JSON files under `runs/`.
+- Headline: Qwen2.5-3B goes from 6.18 GB (F16) to 2.40 GB (Octuma INT4) with +2.43% perplexity, against +6.21% for Q4_K_M at 1.93 GB. On the 0.5B, Q4_K_M is better and smaller.
+
+## Published models
+
+- [Imanol11/qwen0.5b-int4-Octuma](https://huggingface.co/Imanol11/qwen0.5b-int4-Octuma): 0.52 GB GGUF, Apache 2.0.
+- [Imanol11/qwen1.5b-int4-Octuma](https://huggingface.co/Imanol11/qwen1.5b-int4-Octuma): 1.32 GB GGUF, Apache 2.0.
+- [Imanol11/qwen3b-int4-Octuma](https://huggingface.co/Imanol11/qwen3b-int4-Octuma): 2.40 GB GGUF, Qwen Research License (non-commercial).
+
+## Known limits
+
+- Quantized models are slower than the original in PyTorch (4.2 against 14.4 tok/s on Qwen 3B with a GPU): `QuantLinear` unpacks weights on every forward pass. For speed, export to GGUF and use llama.cpp.
+- Not compared against AutoGPTQ or GPTQModel.
+- Only the Qwen2.5 family is measured end to end.
+- A quantized model keeps the license of its base model. The MIT license of Octuma covers the code only.

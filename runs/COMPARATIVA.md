@@ -44,7 +44,7 @@ GGUF estandar que cualquiera bajaria de Hugging Face.
 ### El bug del export, resuelto
 
 La fila de +111% era un GGUF con tres metadatos mal escritos, no un problema de
-cuantizacion. Detalle en `CLAUDE.md`. Se arreglo el 2026-09-20 y el archivo
+cuantizacion. Detalle en `runs/NOTA_gguf_reexport.md`. Se arreglo el 2026-09-20 y el archivo
 re-exportado es el que da 7.492.
 
 Los tres modelos publicados se volvieron a medir con este mismo protocolo en

@@ -18,6 +18,7 @@ CLI (`octuma quantize`, `octuma compare`, `octuma try`).
 | `bench_gguf.py` | La cadena completa por modelo: baja el original, lo convierte a F16, lo cuantiza con llama.cpp (Q4_K_M, Q4_0) y mide las cuatro variantes con `llama-perplexity`. Escribe `runs/gguf__<slug>.json`. |
 | `tabla_gguf.py` | Genera `runs/COMPARATIVA_GGUF.md` desde esos JSON. Todo el documento sale de los datos, incluidas las frases que dicen quién gana. |
 | `grafica_gguf.py` | Una gráfica por modelo más la de conjunto, en claro y oscuro, para el README. |
+| `hero_svg.py` | Genera la cabecera animada del README (`docs/img/hero.svg` y `hero-es.svg`) con las cifras de `runs/gguf__qwen3b.json`. Si la medición cambia, se vuelve a correr; una prueba avisa si quedó desfasada. |
 
 ## Diagnóstico
 

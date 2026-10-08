@@ -40,7 +40,7 @@ en un commit aparte que solo cambie formato.
 | `src/octuma/quant/` | El núcleo: GPTQ, AWQ, búsqueda de escala, empaquetado de bits. |
 | `src/octuma/export/` | Escribir el modelo en disco: formato `.tq` propio y GGUF. |
 | `src/octuma/` | Calibración, evaluación, sensibilidad de capas y la CLI. |
-| `tests/` | Pruebas. Sin red, sin GPU, sin modelos reales. |
+| `tests/` | Pruebas. Sin red, sin GPU, sin modelos reales. `test_cli_e2e.py` corre la terminal de punta a punta; `test_readme.py` y `test_documentos.py` comprueban que lo que dicen los README existe y coincide entre español e inglés. |
 | `scripts/` | Andamiaje de experimentos e infraestructura. **No es parte del paquete**; ver `scripts/README.md`. |
 | `experiments/` | Las matrices de experimentos en YAML. |
 | `runs/` | Resultados en JSON. Se versionan: son la evidencia de la tabla del README. |
