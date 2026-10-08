@@ -584,7 +584,7 @@ Detail in [`runs/NOTA_rtn_search.md`](https://github.com/1mano1/octuma/blob/main
 git clone https://github.com/1mano1/octuma.git
 cd octuma
 pip install -e ".[hf,gguf,dev]"
-pytest -q          # 131 tests, under a minute on CPU
+pytest -q          # 132 tests, under a minute on CPU
 ruff check .
 ```
 

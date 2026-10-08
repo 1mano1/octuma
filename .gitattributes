@@ -1,0 +1,7 @@
+# Archivos binarios: git no debe tocar sus saltos de linea. Sin esto,
+# core.autocrlf convirtio la firma de las PNG y las dejo inservibles.
+*.png binary
+*.jpg binary
+*.gguf binary
+*.safetensors binary
+*.bundle binary

@@ -132,3 +132,19 @@ def test_la_version_del_changelog_es_la_del_paquete():
 
     primera = re.search(r"^## (\d+\.\d+\.\d+)", _leer("CHANGELOG.md"), re.MULTILINE).group(1)
     assert primera == __version__, "la entrada mas nueva del CHANGELOG no es la version actual"
+
+
+def test_las_imagenes_del_repo_no_estan_danadas():
+    """Una PNG empieza con 8 bytes fijos que incluyen un salto de linea CRLF.
+
+    Con `core.autocrlf` en Windows, git trato las graficas como texto y
+    convirtio ese salto: las doce quedaron corruptas desde septiembre y GitHub
+    las mostraba como un hueco. `.gitattributes` las marca ahora como binarias.
+    """
+    firma = b"\x89PNG\r\n\x1a\n"
+    rotas = [
+        str(p.relative_to(RAIZ))
+        for p in (RAIZ / "docs" / "img").glob("*.png")
+        if p.read_bytes()[:8] != firma
+    ]
+    assert not rotas, f"imagenes dañadas: {rotas}"
